@@ -33,7 +33,7 @@ def get_monitoring_data():
 
 
 @app.route('/scale', methods=['POST'])
-def get_monitoring_data():
+def scale():
     return scaling.do_scale(request.json['message']['data'])
 
 

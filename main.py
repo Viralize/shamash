@@ -1,21 +1,23 @@
 import logging
 
 from flask import Flask, request
+from google.appengine.api import app_identity
 
 from monitoring import dataproc_monitoring
 from scaling import scaling
 from util import pubsub
-import json
+
 app = Flask(__name__)
 
 
 def create_app():
-    logging.info("Starting {}".format("Shamash"))
+    hostname = app_identity.get_default_version_hostname()
+    logging.info("Starting {} on {}".format("Shamash",hostname))
     client = pubsub.get_pubsub_client()
     pubsub.pull(client, 'monitoring',
-                "https://aviv-playground.appspot.com/get_monitoring_data")
+                "https://{}/get_monitoring_data".format(hostname))
     pubsub.pull(client, 'scaling',
-                "https://aviv-playground.appspot.com/scale")
+                "https://{}/scale".format(hostname))
     return app
 
 

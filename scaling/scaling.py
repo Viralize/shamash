@@ -5,7 +5,7 @@ from monitoring import dataproc_monitoring
 from util import pubsub
 from util import settings
 
-SCALING_TOPIC = 'forseti-scaling'
+SCALING_TOPIC = 'shamash-scaling'
 
 
 def trigger_scaling(up):

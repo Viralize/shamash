@@ -9,7 +9,7 @@ from util import settings
 
 SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
 
-MONITORING_TOPIC = 'forseti-monitoring'
+MONITORING_TOPIC = 'shamash-monitoring'
 credentials = app_engine.Credentials(scopes=SCOPES)
 
 

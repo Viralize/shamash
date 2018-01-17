@@ -24,18 +24,3 @@ def get_key(key_name):
                                     MaxInstances=10, MinInstances=2,
                                     )
     return getattr(entity, key_name)
-
-
-def setServiceKey(key_file):
-    with open(key_file) as json_data_file:
-        data = json.load(json_data_file)
-    entity = Settings.get_by_id('settings')
-    entity.ServiceKey = json.dumps(data)
-    entity.put()
-
-
-def create_topic():
-    #    body = {'topic': dest_topic}
-    #   client.projects().subscriptions().create(
-    # name=project+'/subscriptions/mysub',body=body).execute()
-    return

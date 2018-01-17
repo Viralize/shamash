@@ -5,12 +5,12 @@ from flask import Flask, request
 from monitoring import dataproc_monitoring
 from scaling import scaling
 from util import pubsub
-
+import json
 app = Flask(__name__)
 
 
 def create_app():
-    logging.info("Starting {}".format("forseti"))
+    logging.info("Starting {}".format("Shamash"))
     client = pubsub.get_pubsub_client()
     pubsub.pull(client, 'monitoring',
                 "https://aviv-playground.appspot.com/get_monitoring_data")

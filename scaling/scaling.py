@@ -19,12 +19,11 @@ def should_scale(payload):
     # ScaleOutYARNMemoryAvailablePercentage or
     # ScaleInYARNMemoryAvailablePercentagedata[0]
     # ScaleOutContainerPendingRatio data[1]
-
-    if data[0] > settings.get_key('ScaleOutYARNMemoryAvailablePercentage'):
+    if int(data[0]) > settings.get_key('ScaleOutYARNMemoryAvailablePercentage'):
         trigger_scaling("up")
-    elif data[1] > settings.get_key('ScaleOutContainerPendingRatio'):
+    elif float(data[1]) > settings.get_key('ScaleOutContainerPendingRatio'):
         trigger_scaling("up")
-    elif data[0] < settings.get_key('ScaleInYARNMemoryAvailablePercentage'):
+    elif int(data[0]) < settings.get_key('ScaleInYARNMemoryAvailablePercentage'):
         trigger_scaling("down")
     return 'OK', 200
 
@@ -49,6 +48,8 @@ def do_scale(payload):
         new_size = settings.get_key('MaxInstances')
     if new_size < settings.get_key('MinInstances'):
         new_size = settings.get_key('MinInstances')
+    if new_size == current_nodes:
+        return 'ok', 204
     logging.info(
         "Updating cluster from {} to {} nodes".format(current_nodes, new_size))
     dp.patch_cluster(new_size)

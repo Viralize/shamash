@@ -1,5 +1,3 @@
-import json
-
 from google.appengine.ext import ndb
 
 
@@ -12,7 +10,6 @@ class Settings(ndb.Model):
     ScaleInYARNMemoryAvailablePercentage = ndb.IntegerProperty()
     MaxInstances = ndb.IntegerProperty()
     MinInstances = ndb.IntegerProperty()
-
 
 
 def get_key(key_name):

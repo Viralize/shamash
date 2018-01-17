@@ -4,8 +4,7 @@ import json
 import googleapiclient.discovery
 from google.auth import app_engine
 
-from util import pubsub
-from util import settings
+from util import pubsub, settings
 
 SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
 
@@ -29,6 +28,9 @@ class DataProc:
 
     def get_YARNMemoryAvailablePercentage(self):
         res = self.get_cluster_data()
+        if int(res["metrics"]["yarnMetrics"][
+                   "yarn-memory-mb-allocated"]) == 0:
+            return -1
         return int(res["metrics"]["yarnMetrics"][
                        "yarn-memory-mb-allocated"]) / \
                int(res["metrics"]["yarnMetrics"][
@@ -41,7 +43,7 @@ class DataProc:
             res["metrics"]["yarnMetrics"][
                 "yarn-containers-allocated"])
         if yarn_container_allocated == 0:
-            return 0
+            return -1
         return int(res["metrics"]["yarnMetrics"][
                        "yarn-containers-pending"]) / \
                yarn_container_allocated

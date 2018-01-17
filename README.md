@@ -1,3 +1,1 @@
 ![](Shamash.png)
-
-

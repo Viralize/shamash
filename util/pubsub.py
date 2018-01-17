@@ -14,6 +14,7 @@ def get_pubsub_client():
 
 
 def publish(client, body, topic):
+    """Publish a message to a Pub/Sub topic"""
     project = 'projects/{}'.format(settings.get_key('project_id'))
     dest_topic = project + '/topics/' + topic
     client.projects().topics().publish(topic=dest_topic, body=body).execute()
@@ -31,8 +32,10 @@ def get_full_subscription_name(project, subscription):
 
 
 def pull(client, sub, endpoint):
+    """Register a listener endpoint """
     subscription = get_full_subscription_name(settings.get_key('project_id'),
                                               sub)
     body = {'pushConfig': {'pushEndpoint': endpoint}}
-    res = client.projects().subscriptions().modifyPushConfig(subscription=subscription,
-                                                 body=body).execute()
+    res = client.projects().subscriptions().modifyPushConfig(
+        subscription=subscription,
+        body=body).execute()

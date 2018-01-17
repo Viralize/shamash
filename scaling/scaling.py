@@ -8,8 +8,9 @@ from util import settings
 SCALING_TOPIC = 'shamash-scaling'
 
 
-def trigger_scaling(up):
-    msg = {'messages': [{'data': base64.b64encode(up)}]}
+def trigger_scaling(direction):
+    logging.info("Trigger Scaling {}".format(direction))
+    msg = {'messages': [{'data': base64.b64encode(direction)}]}
     pubsub_client = pubsub.get_pubsub_client()
     pubsub.publish(pubsub_client, msg, SCALING_TOPIC)
 
@@ -19,13 +20,20 @@ def should_scale(payload):
     # ScaleOutYARNMemoryAvailablePercentage or
     # ScaleInYARNMemoryAvailablePercentagedata[0]
     # ScaleOutContainerPendingRatio data[1]
-    if int(data[0]) > settings.get_key('ScaleOutYARNMemoryAvailablePercentage'):
+    logging.info(
+        "YARNMemoryAvailablePercentage {} ContainerPendingRatio{}".format(
+            data[0], data[1]))
+    if int(data[1]) == -1 or int(data[0]) == -1:
+        return 'OK', 204
+    if int(data[0]) < settings.get_key(
+            'ScaleOutYARNMemoryAvailablePercentage'):
         trigger_scaling("up")
     elif float(data[1]) > settings.get_key('ScaleOutContainerPendingRatio'):
         trigger_scaling("up")
-    elif int(data[0]) < settings.get_key('ScaleInYARNMemoryAvailablePercentage'):
+    elif int(data[0]) > settings.get_key(
+            'ScaleInYARNMemoryAvailablePercentage'):
         trigger_scaling("down")
-    return 'OK', 200
+    return 'OK', 204
 
 
 def do_scale(payload):
@@ -54,5 +62,3 @@ def do_scale(payload):
         "Updating cluster from {} to {} nodes".format(current_nodes, new_size))
     dp.patch_cluster(new_size)
     return 'ok', 204
-
-

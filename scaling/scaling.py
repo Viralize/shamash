@@ -1,7 +1,6 @@
 import base64
 import logging
-
-from monitoring import dataproc_monitoring
+from monitoring import dataproc_monitoring, metrics
 from util import pubsub
 from util import settings
 
@@ -22,8 +21,14 @@ def should_scale(payload):
     # ScaleOutContainerPendingRatio data[1]
     logging.info(
         "YARNMemoryAvailablePercentage {} ContainerPendingRatio{}".format(
-            data[0], data[1]))
+            data[0], data[1], data[2]))
+    met = metrics.Metrics()
+    met.write_timeseries_value('YARNMemoryAvailablePercentage', data[0])
+    met.write_timeseries_value('ContainerPendingRatio', data[1])
+    met.write_timeseries_value('YarnNodes', data[2])
     if int(data[1]) == -1 or int(data[0]) == -1:
+        if int(data[2]) > settings.get_key('MinInstances'):
+            trigger_scaling("down")
         return 'OK', 204
     if int(data[0]) < settings.get_key(
             'ScaleOutYARNMemoryAvailablePercentage'):
@@ -33,24 +38,31 @@ def should_scale(payload):
     elif int(data[0]) > settings.get_key(
             'ScaleInYARNMemoryAvailablePercentage'):
         trigger_scaling("down")
+
     return 'OK', 204
+
+
+def calc_scale(data):
+    scaling_by = 1
+    if data == 'down':
+        scaling_by = -1
+    return scaling_by
 
 
 def do_scale(payload):
     data = base64.b64decode(payload)
     dp = dataproc_monitoring.DataProc()
-    cluster_data = dp.get_cluster_data()
-    cluster_status = cluster_data['status']['state']
+    try:
+        cluster_status = dp.get_cluster_status()
+        current_nodes = int(dp.get_number_of_nodes())
+    except dataproc_monitoring.DataProcException as e:
+        logging.error(e)
+        return 'Error', 500
     if cluster_status.lower() != 'running':
         logging.info("Cluster not ready for update status {}".format(
             cluster_status))
-        return
-    current_nodes = int(
-        cluster_data["metrics"]["yarnMetrics"][
-            "yarn-vcores-available"])
-    scaling_by = 1
-    if data == 'down':
-        scaling_by = -1
+        return 'ok', 204
+    scaling_by = calc_scale(data)
     new_size = current_nodes + scaling_by
     if new_size > settings.get_key('MaxInstances'):
         new_size = settings.get_key('MaxInstances')
@@ -60,5 +72,9 @@ def do_scale(payload):
         return 'ok', 204
     logging.info(
         "Updating cluster from {} to {} nodes".format(current_nodes, new_size))
-    dp.patch_cluster(new_size)
+    try:
+        dp.patch_cluster(new_size)
+    except dataproc_monitoring.DataProcException as e:
+        logging.error(e)
+        return 'Error', 500
     return 'ok', 204

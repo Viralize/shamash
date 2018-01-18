@@ -232,4 +232,5 @@ typings/
 .next
 
 /lib/
+/debug/
 .idea/

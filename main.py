@@ -3,7 +3,7 @@ import logging
 from flask import Flask, request
 from google.appengine.api import app_identity
 
-from monitoring import dataproc_monitoring
+from monitoring import dataproc_monitoring, metrics
 from scaling import scaling
 from util import pubsub
 
@@ -12,13 +12,12 @@ app = Flask(__name__)
 
 def create_app():
     hostname = app_identity.get_default_version_hostname()
-    logging.info("Starting {} on {}".format("Shamash",hostname))
+    logging.info("Starting {} on {}".format("Shamash", hostname))
     client = pubsub.get_pubsub_client()
     pubsub.pull(client, 'monitoring',
                 "https://{}/get_monitoring_data".format(hostname))
     pubsub.pull(client, 'scaling',
                 "https://{}/scale".format(hostname))
-    return app
 
 
 create_app()
@@ -36,7 +35,7 @@ def get_monitoring_data():
 
 @app.route('/scale', methods=['POST'])
 def scale():
-    return scaling.scale(request.json['message']['data'])
+    return scaling.do_scale(request.json['message']['data'])
 
 
 @app.route('/test')

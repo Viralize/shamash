@@ -31,6 +31,7 @@ class DataProc:
 
 
     def __get_cluster_data(self):
+        """Get a json with cluster data/status."""
         try:
             return self.dataproc.projects().regions().clusters().get(
                 projectId=settings.get_key("project_id"),
@@ -42,6 +43,7 @@ class DataProc:
 
 
     def get_cluster_status(self):
+        """Get status of the cluster.running updating etc"""
         try:
             cluster_data = self.__get_cluster_data()
             status = cluster_data['status']['state']
@@ -51,6 +53,8 @@ class DataProc:
 
 
     def get_YARNMemoryAvailablePercentage(self):
+        """Calculate cluster available memory %
+        yarn-memory-mb-allocated/yarn-memory-mb-available"""
         try:
             res = self.__get_cluster_data()
             if int(res["metrics"]["yarnMetrics"][
@@ -65,10 +69,10 @@ class DataProc:
                            "yarn-memory-mb-available"])
         except (HttpError, KeyError) as e:
             raise DataProcException(e)
-        return status
 
 
     def get_ContainerPendingRatio(self):
+        """Calculate the ratio between allocated and pending containers"""
         try:
             res = self.__get_cluster_data()
             yarn_container_allocated = int(
@@ -77,12 +81,14 @@ class DataProc:
             if yarn_container_allocated == 0:
                 return -1
             return int(res["metrics"]["yarnMetrics"][
-                           "yarn-containers-pending"]) / yarn_container_allocated
+                           "yarn-containers-pending"]) / \
+                   yarn_container_allocated
         except (HttpError, KeyError) as e:
             raise DataProcException(e)
 
 
     def get_number_of_nodes(self):
+        """Get the number of active nodes in a cluster"""
         try:
             res = self.__get_cluster_data()
             nodes = int(res["metrics"]["yarnMetrics"][
@@ -93,6 +99,7 @@ class DataProc:
 
 
     def patch_cluster(self, nodes):
+        """Update number of nodes in a cluster"""
         body = json.loads(
             '{"config":{"workerConfig":{"numInstances":%d}}}' % nodes)
         try:
@@ -107,6 +114,7 @@ class DataProc:
 
 
 def check_load():
+    """Get the current cluster metrics and publish them to pub/sub"""
     dp = DataProc()
     try:
         res = str(dp.get_YARNMemoryAvailablePercentage()) + "," + str(

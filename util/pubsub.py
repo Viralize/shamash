@@ -1,5 +1,9 @@
+"""Interact with pub/sub"""
+import logging
+
 from google.auth import app_engine
 from googleapiclient import discovery
+from googleapiclient.errors import HttpError
 
 from . import settings
 
@@ -9,6 +13,7 @@ credentials = app_engine.Credentials(scopes=PUBSUB_SCOPES)
 
 
 def get_pubsub_client():
+    """Get a pubsub client from the API"""
     return discovery.build('pubsub', 'v1',
                            credentials=credentials)
 
@@ -27,7 +32,7 @@ def fqrn(resource_type, project, resource):
 
 def get_full_subscription_name(project, subscription):
     """Return a fully qualified subscription name."""
-    print  fqrn('subscriptions', project, subscription)
+    print fqrn('subscriptions', project, subscription)
     return fqrn('subscriptions', project, subscription)
 
 
@@ -36,6 +41,11 @@ def pull(client, sub, endpoint):
     subscription = get_full_subscription_name(settings.get_key('project_id'),
                                               sub)
     body = {'pushConfig': {'pushEndpoint': endpoint}}
-    res = client.projects().subscriptions().modifyPushConfig(
-        subscription=subscription,
-        body=body).execute()
+    try:
+        client.projects().subscriptions().modifyPushConfig(
+            subscription=subscription,
+            body=body).execute()
+    except HttpError as e:
+        logging.error(e)
+        return 'Error', 500
+    return 'ok, 204'

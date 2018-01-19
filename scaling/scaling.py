@@ -1,3 +1,4 @@
+"""Handle scaling """
 import base64
 import logging
 from monitoring import dataproc_monitoring, metrics
@@ -8,6 +9,10 @@ SCALING_TOPIC = 'shamash-scaling'
 
 
 def trigger_scaling(direction):
+    """
+    Start scaling operation
+    :param direction:
+    """
     logging.info("Trigger Scaling {}".format(direction))
     msg = {'messages': [{'data': base64.b64encode(direction)}]}
     pubsub_client = pubsub.get_pubsub_client()
@@ -15,6 +20,11 @@ def trigger_scaling(direction):
 
 
 def should_scale(payload):
+    """
+    Make a descion to scale or not
+    :param payload:
+    :return:
+    """
     data = base64.b64decode(payload).split(",")
     # ScaleOutYARNMemoryAvailablePercentage or
     # ScaleInYARNMemoryAvailablePercentagedata[0]
@@ -43,6 +53,11 @@ def should_scale(payload):
 
 
 def calc_scale(data):
+    """
+    How many nodes to add
+    :param data:
+    :return:
+    """
     scaling_by = 1
     if data == 'down':
         scaling_by = -1
@@ -50,6 +65,11 @@ def calc_scale(data):
 
 
 def do_scale(payload):
+    """
+    Perform the scaling
+    :param payload:
+    :return:
+    """
     data = base64.b64decode(payload)
     dp = dataproc_monitoring.DataProc()
     try:

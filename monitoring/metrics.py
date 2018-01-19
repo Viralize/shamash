@@ -1,3 +1,4 @@
+"""Handling metrics"""
 import datetime
 
 import googleapiclient.discovery
@@ -12,25 +13,36 @@ credentials = app_engine.Credentials(scopes=SCOPES)
 
 def format_rfc3339(datetime_instance=None):
     """Formats a datetime per RFC 3339.
-    :param datetime_instance: Datetime instanec to format, defaults to utcnow
+    :param datetime_instance: Datetime instance to format, defaults to utcnow
     """
     return datetime_instance.isoformat("T") + "Z"
 
 
 def get_now_rfc3339():
+    """
+    return formatted time
+    :return:
+    """
     # Return now
     return format_rfc3339(datetime.datetime.utcnow())
 
 
 def get_start_time(minutes):
+    """
+    crate start time for minuets from now
+    :param minutes:
+    :return:
+    """
     # Return now- 5 minutes
     start_time = datetime.datetime.utcnow() - datetime.timedelta(
         minutes=minutes)
     return format_rfc3339(start_time)
 
 
-class Metrics():
-
+class Metrics:
+    """
+    Writing and reading metrics
+    """
     def __init__(self):
         self.monitorservice = googleapiclient.discovery.build('monitoring',
                                                               'v3',
@@ -44,7 +56,6 @@ class Metrics():
         self.create_custom_metric('YARNMemoryAvailablePercentage')
         self.create_custom_metric('YarnNodes')
         self.project_id = settings.get_key('project_id')
-
 
     def write_timeseries_value(self, custom_metric_type, data_point):
         """Write the custom metric obtained."""
@@ -71,8 +82,13 @@ class Metrics():
             name=self.project_resource, body={"timeSeries": [timeseries_data]})
         request.execute()
 
-
     def read_timeseries(self, custom_metric_type, minutes):
+        """
+        Get the time series from stackdriver
+        :param custom_metric_type:
+        :param minutes:
+        :return: json object
+        """
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
         request = self.monitorservice.projects().timeSeries().list(
             name=self.project_resource,
@@ -82,7 +98,6 @@ class Metrics():
             interval_endTime=get_now_rfc3339())
         response = request.execute()
         return response
-
 
     def create_custom_metric(self, custom_metric_type):
         """Create custom metric descriptor"""

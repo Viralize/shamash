@@ -1,7 +1,11 @@
+""""Settings"""
 from google.appengine.ext import ndb
 
 
 class Settings(ndb.Model):
+    """
+    Seeting managmnet for Shamash
+    """
     project_id = ndb.StringProperty()
     region = ndb.StringProperty()
     cluster = ndb.StringProperty()
@@ -13,6 +17,11 @@ class Settings(ndb.Model):
 
 
 def get_key(key_name):
+    """
+    get settings key
+    :param key_name:
+    :return:
+    """
     entity = Settings.get_or_insert("settings", project_id="myproject",
                                     region="myregion", cluster="mycluster",
                                     ScaleOutYARNMemoryAvailablePercentage=15,

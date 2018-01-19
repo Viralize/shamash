@@ -1,3 +1,4 @@
+"""Dataproc actions """
 import base64
 import json
 import logging
@@ -15,20 +16,25 @@ credentials = app_engine.Credentials(scopes=SCOPES)
 
 
 class DataProcException(Exception):
+    """
+    Exception class for DataProc functions
+    """
+
     def __init__(self, value):
         self.parameter = value
-
 
     def __str__(self):
         return repr(self.parameter)
 
 
 class DataProc:
+    """
+    Class for interacting with a Dataproc cluster
+    """
 
     def __init__(self):
         self.dataproc = googleapiclient.discovery.build('dataproc', 'v1',
                                                         credentials=credentials)
-
 
     def __get_cluster_data(self):
         """Get a json with cluster data/status."""
@@ -41,7 +47,6 @@ class DataProc:
             logging.error(e)
             raise e
 
-
     def get_cluster_status(self):
         """Get status of the cluster.running updating etc"""
         try:
@@ -51,8 +56,7 @@ class DataProc:
             raise DataProcException(e)
         return status
 
-
-    def get_YARNMemoryAvailablePercentage(self):
+    def get_yarn_memory_available_percentage(self):
         """Calculate cluster available memory %
         yarn-memory-mb-allocated/yarn-memory-mb-available"""
         try:
@@ -70,8 +74,7 @@ class DataProc:
         except (HttpError, KeyError) as e:
             raise DataProcException(e)
 
-
-    def get_ContainerPendingRatio(self):
+    def get_container_pending_ratio(self):
         """Calculate the ratio between allocated and pending containers"""
         try:
             res = self.__get_cluster_data()
@@ -86,7 +89,6 @@ class DataProc:
         except (HttpError, KeyError) as e:
             raise DataProcException(e)
 
-
     def get_number_of_nodes(self):
         """Get the number of active nodes in a cluster"""
         try:
@@ -96,7 +98,6 @@ class DataProc:
         except (HttpError, KeyError) as e:
             raise DataProcException(e)
         return nodes
-
 
     def patch_cluster(self, nodes):
         """Update number of nodes in a cluster"""
@@ -117,8 +118,8 @@ def check_load():
     """Get the current cluster metrics and publish them to pub/sub"""
     dp = DataProc()
     try:
-        res = str(dp.get_YARNMemoryAvailablePercentage()) + "," + str(
-            dp.get_ContainerPendingRatio()) + "," + str(
+        res = str(dp.get_yarn_memory_available_percentage()) + "," + str(
+            dp.get_container_pending_ratio()) + "," + str(
             dp.get_number_of_nodes())
     except DataProcException as e:
         logging.error(e)

@@ -16,7 +16,10 @@ def trigger_scaling(direction):
     logging.info("Trigger Scaling {}".format(direction))
     msg = {'messages': [{'data': base64.b64encode(direction)}]}
     pubsub_client = pubsub.get_pubsub_client()
-    pubsub.publish(pubsub_client, msg, SCALING_TOPIC)
+    try:
+        pubsub.publish(pubsub_client, msg, SCALING_TOPIC)
+    except pubsub.PubSubException as e:
+        logging.error(e)
 
 
 def should_scale(payload):
@@ -81,7 +84,7 @@ def do_scale(payload):
     if cluster_status.lower() != 'running':
         logging.info("Cluster not ready for update status {}".format(
             cluster_status))
-        return 'ok', 204
+        return 'Not Modified', 304
     scaling_by = calc_scale(data)
     new_size = current_nodes + scaling_by
     if new_size > settings.get_key('MaxInstances'):
@@ -89,7 +92,7 @@ def do_scale(payload):
     if new_size < settings.get_key('MinInstances'):
         new_size = settings.get_key('MinInstances')
     if new_size == current_nodes:
-        return 'ok', 204
+        return 'kNot Modified', 304
     logging.info(
         "Updating cluster from {} to {} nodes".format(current_nodes, new_size))
     try:

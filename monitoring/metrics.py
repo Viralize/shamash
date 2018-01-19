@@ -1,8 +1,10 @@
 """Handling metrics"""
 import datetime
+import logging
 
 import googleapiclient.discovery
 from google.auth import app_engine
+from googleapiclient.errors import HttpError
 
 from util import settings
 
@@ -43,6 +45,7 @@ class Metrics:
     """
     Writing and reading metrics
     """
+
     def __init__(self):
         self.monitorservice = googleapiclient.discovery.build('monitoring',
                                                               'v3',
@@ -77,10 +80,14 @@ class Metrics:
                                'project_id': self.project_id
                            }}
                            }
-
-        request = self.monitorservice.projects().timeSeries().create(
-            name=self.project_resource, body={"timeSeries": [timeseries_data]})
-        request.execute()
+        try:
+            self.monitorservice.projects().timeSeries().create(
+                name=self.project_resource,
+                body={"timeSeries": [timeseries_data]}).execute()
+            return True
+        except HttpError as e:
+            logging.error(e)
+            return False
 
     def read_timeseries(self, custom_metric_type, minutes):
         """
@@ -90,14 +97,16 @@ class Metrics:
         :return: json object
         """
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
-        request = self.monitorservice.projects().timeSeries().list(
-            name=self.project_resource,
-            filter='metric.type="{0}"'.format(custom_metric),
-            pageSize=100,
-            interval_startTime=get_start_time(minutes),
-            interval_endTime=get_now_rfc3339())
-        response = request.execute()
-        return response
+        try:
+            return self.monitorservice.projects().timeSeries().list(
+                name=self.project_resource,
+                filter='metric.type="{0}"'.format(custom_metric),
+                pageSize=100,
+                interval_startTime=get_start_time(minutes),
+                interval_endTime=get_now_rfc3339()).execute()
+        except HttpError as e:
+            logging.error(e)
+            return None
 
     def create_custom_metric(self, custom_metric_type):
         """Create custom metric descriptor"""
@@ -108,5 +117,9 @@ class Metrics:
         metrics_descriptor['name'] = "{}/metricDescriptors/{}".format(
             self.project_resource, custom_metric_type)
         metrics_descriptor['type'] = custom_metric
-        return self.monitorservice.projects().metricDescriptors().create(
-            name=self.project_resource, body=metrics_descriptor).execute()
+        try:
+            self.monitorservice.projects().metricDescriptors().create(
+                name=self.project_resource, body=metrics_descriptor).execute()
+        except HttpError as e:
+            logging.error(e)
+        return

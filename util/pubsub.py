@@ -12,6 +12,18 @@ PUBSUB_SCOPES = ['https://www.googleapis.com/auth/pubsub',
 credentials = app_engine.Credentials(scopes=PUBSUB_SCOPES)
 
 
+class PubSubException(Exception):
+    """
+    Exception class for Pub/Sub functions
+    """
+
+    def __init__(self, value):
+        self.parameter = value
+
+    def __str__(self):
+        return repr(self.parameter)
+
+
 def get_pubsub_client():
     """Get a pubsub client from the API"""
     return discovery.build('pubsub', 'v1',
@@ -22,7 +34,11 @@ def publish(client, body, topic):
     """Publish a message to a Pub/Sub topic"""
     project = 'projects/{}'.format(settings.get_key('project_id'))
     dest_topic = project + '/topics/' + topic
-    client.projects().topics().publish(topic=dest_topic, body=body).execute()
+    try:
+        client.projects().topics().publish(topic=dest_topic, body=body).execute()
+    except HttpError as e:
+        logging.error(e)
+        raise PubSubException(e)
 
 
 def fqrn(resource_type, project, resource):

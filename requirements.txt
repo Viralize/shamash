@@ -5,3 +5,4 @@ google-auth
 google-auth-httplib2
 google-cloud-logging
 google-cloud-monitoring
+numpy==1.6.1

@@ -1,9 +1,11 @@
 """Handle scaling """
 import base64
 import logging
+
+import numpy as np
+
 from monitoring import dataproc_monitoring, metrics
-from util import pubsub
-from util import settings
+from util import pubsub, settings
 
 SCALING_TOPIC = 'shamash-scaling'
 
@@ -55,16 +57,37 @@ def should_scale(payload):
     return 'OK', 204
 
 
-def calc_scale(data):
+def calc_slope(minuets):
+    """
+    calculate the slope of available memory change
+    :param minuets:
+    """
+
+    met = metrics.Metrics()
+    series = met.read_timeseries('YARNMemoryAvailablePercentage', minuets)
+    retlist = []
+    x = []
+    y = []
+    retlist.extend(series[0]['points'])
+    i = len(retlist)
+    for rl in retlist:
+        x.insert(0, rl['value']['doubleValue'])
+        y.insert(0, i)
+        i = i - 1
+    slope, intercept = np.polyfit(x, y, 1)
+    return slope
+
+
+
+def calc_scale(current_nodes):
     """
     How many nodes to add
     :param data:
     :return:
     """
-    scaling_by = 1
-    if data == 'down':
-        scaling_by = -1
-    return scaling_by
+    scaling_by = current_nodes + (1 / calc_slope(60))
+    logging.info("Scaling to {}".format(scaling_by))
+    return int(scaling_by)
 
 
 def do_scale(payload):
@@ -85,7 +108,7 @@ def do_scale(payload):
         logging.info("Cluster not ready for update status {}".format(
             cluster_status))
         return 'Not Modified', 304
-    scaling_by = calc_scale(data)
+    scaling_by = calc_scale(current_nodes)
     new_size = current_nodes + scaling_by
     if new_size > settings.get_key('MaxInstances'):
         new_size = settings.get_key('MaxInstances')

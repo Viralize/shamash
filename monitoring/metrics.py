@@ -96,17 +96,37 @@ class Metrics:
         :param minutes:
         :return: json object
         """
+
+        out = []
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
+        default_request_kwargs = dict(
+            name=self.project_resource,
+            filter='metric.type="{0}"'.format(custom_metric),
+            pageSize=10000,
+            interval_startTime=get_start_time(minutes),
+            interval_endTime=get_now_rfc3339())
+
+        def _do_request(next_page_token=None):
+            kwargs = default_request_kwargs.copy()
+            if next_page_token:
+                kwargs['nextPageToken'] = next_page_token
+            req = self.monitorservice.projects().timeSeries().list(
+                **kwargs)
+            return req.execute()
+
+        response = _do_request()
+        out.extend(response.get('timeSeries', []))
+
+        next_token = response.get('nextPageToken')
         try:
-            return self.monitorservice.projects().timeSeries().list(
-                name=self.project_resource,
-                filter='metric.type="{0}"'.format(custom_metric),
-                pageSize=100,
-                interval_startTime=get_start_time(minutes),
-                interval_endTime=get_now_rfc3339()).execute()
+            while next_token:
+                response = _do_request(next_token)
+                out.extend(response.get('timeSeries', []))
+                next_token = response.get('nextPageToken')
         except HttpError as e:
             logging.error(e)
-            return None
+            return out
+        return out
 
     def create_custom_metric(self, custom_metric_type):
         """Create custom metric descriptor"""

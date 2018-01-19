@@ -15,6 +15,7 @@ def create_app():
     """
     Do initialization
     """
+
     hostname = app_identity.get_default_version_hostname()
     logging.info("Starting {} on {}".format("Shamash", hostname))
     client = pubsub.get_pubsub_client()

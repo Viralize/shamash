@@ -113,7 +113,7 @@ def do_scale():
     if cluster_status.lower() != 'running':
         logging.info("Cluster not ready for update status {}".format(
             cluster_status))
-        return 'Not Modified', 304
+        return 'Not Modified', 200
     scaling_by = calc_scale(current_nodes)
     new_size = current_nodes + scaling_by
     if new_size > settings.get_key('MaxInstances'):
@@ -121,7 +121,7 @@ def do_scale():
     if new_size < settings.get_key('MinInstances'):
         new_size = settings.get_key('MinInstances')
     if new_size == current_nodes:
-        return 'Not Modified', 304
+        return 'Not Modified', 200
     logging.info(
         "Updating cluster from {} to {} nodes".format(current_nodes, new_size))
     try:

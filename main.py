@@ -1,14 +1,19 @@
 """Entry point for Shmaash"""
 import logging
 
-from flask import Flask, request
+import flask_admin
+from flask import Flask, request, redirect
+from flask_admin.contrib import appengine
 from google.appengine.api import app_identity
 
 from monitoring import dataproc_monitoring
 from scaling import scaling
-from util import pubsub
+from util import pubsub, settings
 
 app = Flask(__name__)
+
+# Create dummy secrey key so we can use sessions
+app.config['SECRET_KEY'] = '123456790'
 
 
 def create_app():
@@ -17,6 +22,11 @@ def create_app():
     """
 
     hostname = app_identity.get_default_version_hostname()
+    # admin = flask_admin.Admin(app, name="Admin")
+    admin = flask_admin.Admin(app, 'Admin',
+                              base_template='layout.html',
+                              template_mode='bootstrap3')
+    admin.add_view(appengine.ModelView(settings.Settings))
     logging.info("Starting {} on {}".format("Shamash", hostname))
     client = pubsub.get_pubsub_client()
     pubsub.pull(client, 'monitoring',
@@ -29,12 +39,12 @@ create_app()
 
 
 @app.route('/')
-def hello():
+def index():
     """
     Main Page
     :return:
     """
-    return 'OK', 200
+    return redirect('/admin', 302)
 
 
 @app.route('/get_monitoring_data', methods=['POST'])

@@ -52,7 +52,7 @@ def scale():
     Called whenwe decide  to scale is made
     :return:
     """
-    return scaling.do_scale(request.json['message']['data'])
+    return scaling.do_scale()
 
 
 @app.route('/tasks/check_load')

@@ -1,5 +1,6 @@
 """Handle scaling """
 import base64
+import json
 import logging
 
 import numpy as np
@@ -30,27 +31,35 @@ def should_scale(payload):
     :param payload:
     :return:
     """
-    data = base64.b64decode(payload).split(",")
+    data = json.loads(base64.b64decode(payload))
+    yarn_memory_available_percentage = data['yarn_memory_available_percentage']
+    container_pending_ratio = data['container_pending_ratio']
+    number_of_nodes = data['number_of_nodes']
+
     # ScaleOutYARNMemoryAvailablePercentage or
     # ScaleInYARNMemoryAvailablePercentagedata[0]
     # ScaleOutContainerPendingRatio data[1]
     logging.info(
         "YARNMemoryAvailablePercentage {} ContainerPendingRatio{}".format(
-            data[0], data[1], data[2]))
+            yarn_memory_available_percentage, container_pending_ratio,
+            number_of_nodes))
     met = metrics.Metrics()
-    met.write_timeseries_value('YARNMemoryAvailablePercentage', data[0])
-    met.write_timeseries_value('ContainerPendingRatio', data[1])
-    met.write_timeseries_value('YarnNodes', data[2])
-    if int(data[1]) == -1 or int(data[0]) == -1:
-        if int(data[2]) > settings.get_key('MinInstances'):
+    met.write_timeseries_value('YARNMemoryAvailablePercentage',
+                               yarn_memory_available_percentage)
+    met.write_timeseries_value('ContainerPendingRatio',
+                               container_pending_ratio)
+    met.write_timeseries_value('YarnNodes', number_of_nodes)
+    if container_pending_ratio == -1 or yarn_memory_available_percentage == -1:
+        if number_of_nodes > settings.get_key('MinInstances'):
             trigger_scaling("down")
         return 'OK', 204
-    if int(data[0]) < settings.get_key(
+    if yarn_memory_available_percentage < settings.get_key(
             'ScaleOutYARNMemoryAvailablePercentage'):
         trigger_scaling("up")
-    elif float(data[1]) > settings.get_key('ScaleOutContainerPendingRatio'):
+    elif container_pending_ratio > settings.get_key(
+            'ScaleOutContainerPendingRatio'):
         trigger_scaling("up")
-    elif int(data[0]) > settings.get_key(
+    elif yarn_memory_available_percentage > settings.get_key(
             'ScaleInYARNMemoryAvailablePercentage'):
         trigger_scaling("down")
 
@@ -78,11 +87,10 @@ def calc_slope(minuets):
     return slope
 
 
-
 def calc_scale(current_nodes):
     """
     How many nodes to add
-    :param data:
+    :param current_nodes:
     :return:
     """
     scaling_by = current_nodes + (1 / calc_slope(60))
@@ -90,13 +98,11 @@ def calc_scale(current_nodes):
     return int(scaling_by)
 
 
-def do_scale(payload):
+def do_scale():
     """
     Perform the scaling
-    :param payload:
     :return:
     """
-    data = base64.b64decode(payload)
     dp = dataproc_monitoring.DataProc()
     try:
         cluster_status = dp.get_cluster_status()
@@ -115,7 +121,7 @@ def do_scale(payload):
     if new_size < settings.get_key('MinInstances'):
         new_size = settings.get_key('MinInstances')
     if new_size == current_nodes:
-        return 'kNot Modified', 304
+        return 'Not Modified', 304
     logging.info(
         "Updating cluster from {} to {} nodes".format(current_nodes, new_size))
     try:

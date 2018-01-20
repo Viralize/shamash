@@ -118,13 +118,18 @@ def check_load():
     """Get the current cluster metrics and publish them to pub/sub"""
     dp = DataProc()
     try:
-        res = str(dp.get_yarn_memory_available_percentage()) + "," + str(
-            dp.get_container_pending_ratio()) + "," + str(
-            dp.get_number_of_nodes())
+        monitor_data = {
+            "yarn_memory_available_percentage": int(dp.get_yarn_memory_available_percentage()),
+            "container_pending_ratio": float(dp.get_container_pending_ratio()),
+            "number_of_nodes": int(dp.get_number_of_nodes())
+        }
     except DataProcException as e:
         logging.error(e)
         return 'Error', 500
-    msg = {'messages': [{'data': base64.b64encode(res)}]}
+    msg = {'messages': [{'data': base64.b64encode(json.dumps(monitor_data))}]}
     pubsub_client = pubsub.get_pubsub_client()
-    pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)
+    try:
+        pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)
+    except pubsub.PubSubException as e:
+        return 'Error', 500
     return 'OK', 204

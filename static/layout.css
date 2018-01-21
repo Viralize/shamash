@@ -1,15 +1,44 @@
-body {
-	background: #EEE;
-}
 
 #content {
-	background: white;
+	background: 404348;
 	border: 1px solid #CCC;
-	padding: 15px 20px 30px 35px;
+
+	margin: auto;
+}
+.lead {
+    background: white;
+    margin-left: auto;
+    margin-right: auto;
+    height: 410px;
+    width: 410px;
+
 }
 
-#content .row {
-    margin-left: 0px;
+h1 {
+    margin-left: 10%;
+}
+
+h2 {
+    margin-left: 1px;
+}
+IMG.displayed {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+
+}
+
+.col-md-2{
+    width: 10%;
+}
+
+.container {
+    width: 100%;
+}
+#content.row {
+
+    margin-left: auto;
+    margin-right: auto;
 }
 
 #brand {

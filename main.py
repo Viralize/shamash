@@ -8,12 +8,14 @@ from google.appengine.api import app_identity
 
 from monitoring import dataproc_monitoring
 from scaling import scaling
-from util import pubsub, settings
+from util import pubsub
+from util.settings import Settings
 
 app = Flask(__name__)
 
 # Create dummy secrey key so we can use sessions
 app.config['SECRET_KEY'] = '123456790'
+app.config['FLASK_ADMIN_SWATCH'] = 'slate'
 
 
 def create_app():
@@ -22,11 +24,15 @@ def create_app():
     """
 
     hostname = app_identity.get_default_version_hostname()
-    # admin = flask_admin.Admin(app, name="Admin")
     admin = flask_admin.Admin(app, 'Admin',
                               base_template='layout.html',
                               template_mode='bootstrap3')
-    admin.add_view(appengine.ModelView(settings.Settings))
+    view = appengine.ModelView(Settings)
+    view.list_template = 'list.html'
+    view.edit_template = 'edit.html'
+    view.create_template = 'create.html'
+    admin.add_view(view)
+
     logging.info("Starting {} on {}".format("Shamash", hostname))
     client = pubsub.get_pubsub_client()
     pubsub.pull(client, 'monitoring',

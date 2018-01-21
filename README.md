@@ -5,7 +5,7 @@ treams
 [Shamash](https://www.wikiwand.com/en/Shamash) was the god of justice in Babylonia and Assyria, just like
 the Shamash autoscaler whose job is to continuously maintain a tradeoff between costs and
 performance.
-![](Shamash.png)
+![](static/Shamash.png)
 
 ## Background
 Cloud Dataproc is a fast, easy-to-use, fully-managed cloud service for running Apache Spark and Apache Hadoop clusters in a simpler, more cost-efficient way. Operations that used to take hours or days take seconds or minutes instead, and you pay only for the resources you use (with per-second billing). Cloud Dataproc also easily integrates with other Google Cloud Platform (GCP) services, giving you a powerful and complete platform for data processing, analytics and machine learning.

@@ -30,3 +30,8 @@ def get_key(key_name):
                                     MaxInstances=10, MinInstances=2,
                                     )
     return getattr(entity, key_name)
+
+
+"""q = MyModel.query()
+for result in q.iter(): ...
+"""

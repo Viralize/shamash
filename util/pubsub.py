@@ -1,6 +1,7 @@
 """Interact with pub/sub"""
 import logging
 
+from google.appengine.api import app_identity
 from google.auth import app_engine
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError
@@ -32,10 +33,11 @@ def get_pubsub_client():
 
 def publish(client, body, topic):
     """Publish a message to a Pub/Sub topic"""
-    project = 'projects/{}'.format(settings.get_key('project_id'))
+    project = 'projects/{}'.format(app_identity.get_application_id())
     dest_topic = project + '/topics/' + topic
     try:
-        client.projects().topics().publish(topic=dest_topic, body=body).execute()
+        client.projects().topics().publish(topic=dest_topic,
+                                           body=body).execute()
     except HttpError as e:
         logging.error(e)
         raise PubSubException(e)
@@ -54,8 +56,10 @@ def get_full_subscription_name(project, subscription):
 
 def pull(client, sub, endpoint):
     """Register a listener endpoint """
-    subscription = get_full_subscription_name(settings.get_key('project_id'),
-                                              sub)
+
+    subscription = get_full_subscription_name(
+        app_identity.get_application_id(),
+        sub)
     body = {'pushConfig': {'pushEndpoint': endpoint}}
     try:
         client.projects().subscriptions().modifyPushConfig(

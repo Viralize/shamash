@@ -8,8 +8,7 @@ from google.appengine.api import app_identity
 
 from monitoring import dataproc_monitoring
 from scaling import scaling
-from util import pubsub
-from util.settings import Settings
+from util import pubsub, settings
 
 app = Flask(__name__)
 
@@ -22,17 +21,23 @@ def create_app():
     """
     Do initialization
     """
-
     hostname = app_identity.get_default_version_hostname()
     admin = flask_admin.Admin(app, 'Admin',
                               base_template='layout.html',
                               template_mode='bootstrap3')
-    view = appengine.ModelView(Settings)
+    view = appengine.ModelView(settings.Settings)
     view.list_template = 'list.html'
     view.edit_template = 'edit.html'
     view.create_template = 'create.html'
     admin.add_view(view)
+    q = settings.get_all_clusters_settings()
+    for result in q.iter():
+        print(result.Cluster)
+    z = settings.get_cluster_settings('igor')
 
+    for r in z:
+        print r.Region
+    return
     logging.info("Starting {} on {}".format("Shamash", hostname))
     client = pubsub.get_pubsub_client()
     pubsub.pull(client, 'monitoring',
@@ -68,7 +73,7 @@ def scale():
     Called whenwe decide  to scale is made
     :return:
     """
-    return scaling.do_scale()
+    return scaling.do_scale(request.json['message']['data'])
 
 
 @app.route('/tasks/check_load')

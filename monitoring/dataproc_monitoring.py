@@ -2,8 +2,10 @@
 import base64
 import json
 import logging
+import time
 
 import googleapiclient.discovery
+from google.appengine.api import app_identity
 from google.auth import app_engine
 from googleapiclient.errors import HttpError
 
@@ -32,17 +34,20 @@ class DataProc:
     Class for interacting with a Dataproc cluster
     """
 
-    def __init__(self):
+    def __init__(self, cluster):
         self.dataproc = googleapiclient.discovery.build('dataproc', 'v1',
                                                         credentials=credentials)
+        self.cluster = cluster
+        self.project_id = app_identity.get_application_id()
+        self.cluster_settings = settings.get_cluster_settings(cluster)
 
     def __get_cluster_data(self):
         """Get a json with cluster data/status."""
         try:
             return self.dataproc.projects().regions().clusters().get(
-                projectId=settings.get_key("project_id"),
-                region=settings.get_key("region"),
-                clusterName=settings.get_key("cluster")).execute()
+                projectId=app_identity.get_application_id(),
+                region=self.cluster_settings.Region,
+                clusterName=self.cluster)
         except HttpError as e:
             logging.error(e)
             raise e
@@ -99,15 +104,46 @@ class DataProc:
             raise DataProcException(e)
         return nodes
 
-    def patch_cluster(self, nodes):
-        """Update number of nodes in a cluster"""
-        body = json.loads(
-            '{"config":{"workerConfig":{"numInstances":%d}}}' % nodes)
+    def get_number_of_workers(self):
+        """Get the number of 'real workers"""
         try:
+            nodes = 0
+            res = self.__get_cluster_data()
+            nodes = int(res["workerConfig"]["numInstances"])
+        except (HttpError, KeyError) as e:
+            raise DataProcException(e)
+        return nodes
+
+    def get_number_of_preemptible_workers(self):
+        """Get the number of 'real workers"""
+        try:
+            nodes = 0
+            res = self.__get_cluster_data()
+            nodes = int(res["secondaryWorkerConfig"]["numInstances"])
+        except (HttpError, KeyError) as e:
+            raise DataProcException(e)
+        return nodes
+
+    def patch_cluster(self, worker_nodes, preemptible_nodes):
+        """Update number of nodes in a cluster"""
+        try:
+            body = json.loads(
+                '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' % preemptible_nodes)
             self.dataproc.projects().regions().clusters().patch(
-                projectId=settings.get_key("project_id"),
-                region=settings.get_key("region"),
-                clusterName=settings.get_key("cluster"),
+                projectId=self.project_id,
+                region=self.cluster_settings.Region,
+                clusterName=self.cluster,
+                updateMask='config.secondary_worker_config.num_instances',
+                body=body).execute()
+            """Wait for cluster"""
+            while self.get_cluster_status().lower() != 'running':
+                time.sleep(1)
+            body = json.loads(
+                '{"config":{"workerConfig":{"numInstances":%d}}}' % worker_nodes)
+            self.dataproc.projects().regions().clusters().patch(
+                projectId=self.project_id,
+                region=self.cluster_settings.Region,
+                clusterName=self.cluster,
                 updateMask='config.worker_config.num_instances',
                 body=body).execute()
         except HttpError as e:
@@ -116,20 +152,30 @@ class DataProc:
 
 def check_load():
     """Get the current cluster metrics and publish them to pub/sub"""
-    dp = DataProc()
-    try:
-        monitor_data = {
-            "yarn_memory_available_percentage": int(dp.get_yarn_memory_available_percentage()),
-            "container_pending_ratio": float(dp.get_container_pending_ratio()),
-            "number_of_nodes": int(dp.get_number_of_nodes())
-        }
-    except DataProcException as e:
-        logging.error(e)
-        return 'Error', 500
-    msg = {'messages': [{'data': base64.b64encode(json.dumps(monitor_data))}]}
-    pubsub_client = pubsub.get_pubsub_client()
-    try:
-        pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)
-    except pubsub.PubSubException as e:
-        return 'Error', 500
+    clusters = settings.get_all_clusters_settings()
+    for cluster in clusters.iter():
+        dp = DataProc(cluster.Cluster)
+        try:
+            monitor_data = {
+                "cluster": cluster.Cluster,
+                "yarn_memory_available_percentage": int(
+                    dp.get_yarn_memory_available_percentage()),
+                "container_pending_ratio": float(
+                    dp.get_container_pending_ratio()),
+                "number_of_nodes": int(dp.get_number_of_nodes()),
+                "worker_nodes": int(dp.get_number_of_workers()),
+                'preemptible_nodes': int(
+                    dp.get_number_of_preemptible_workers())
+            }
+        except DataProcException as e:
+            logging.error(e)
+            return 'Error', 500
+        msg = {
+            'messages': [{'data': base64.b64encode(json.dumps(monitor_data))}]}
+        pubsub_client = pubsub.get_pubsub_client()
+        try:
+            pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)
+        except pubsub.PubSubException as e:
+            logging.error(e)
+            return 'Error', 500
     return 'OK', 204

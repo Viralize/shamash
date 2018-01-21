@@ -35,44 +35,49 @@ def should_scale(payload):
     yarn_memory_available_percentage = data['yarn_memory_available_percentage']
     container_pending_ratio = data['container_pending_ratio']
     number_of_nodes = data['number_of_nodes']
-
+    cluster_name = data['cluster']
+    cluster_settings = settings.get_cluster_settings(cluster_name)
     # ScaleOutYARNMemoryAvailablePercentage or
     # ScaleInYARNMemoryAvailablePercentagedata[0]
     # ScaleOutContainerPendingRatio data[1]
     logging.info(
-        "YARNMemoryAvailablePercentage {} ContainerPendingRatio{}".format(
+        "Cluster {} YARNMemoryAvailablePercentage {} ContainerPendingRatio{}".format(
+            cluster_name,
             yarn_memory_available_percentage, container_pending_ratio,
             number_of_nodes))
-    met = metrics.Metrics()
+    met = metrics.Metrics(cluster_name)
     met.write_timeseries_value('YARNMemoryAvailablePercentage',
                                yarn_memory_available_percentage)
     met.write_timeseries_value('ContainerPendingRatio',
                                container_pending_ratio)
     met.write_timeseries_value('YarnNodes', number_of_nodes)
-    if container_pending_ratio == -1 or yarn_memory_available_percentage == -1:
-        if number_of_nodes > settings.get_key('MinInstances'):
-            trigger_scaling("down")
-        return 'OK', 204
-    if yarn_memory_available_percentage < settings.get_key(
-            'ScaleOutYARNMemoryAvailablePercentage'):
-        trigger_scaling("up")
-    elif container_pending_ratio > settings.get_key(
-            'ScaleOutContainerPendingRatio'):
-        trigger_scaling("up")
-    elif yarn_memory_available_percentage > settings.get_key(
-            'ScaleInYARNMemoryAvailablePercentage'):
-        trigger_scaling("down")
 
+    scaling = None
+    if container_pending_ratio == -1 or yarn_memory_available_percentage == -1:
+        if number_of_nodes > cluster_settings.MinInstances:
+            scaling = "down"
+    elif yarn_memory_available_percentage < cluster_settings.UpYARNMemAvailPct:
+        scaling = "up"
+    elif container_pending_ratio > cluster_settings.UpContainerPendingRatio:
+        scaling = "up"
+    elif yarn_memory_available_percentage > cluster_settings.DownYARNMemAvailePct:
+        scaling = "down"
+    body = {
+        "cluster": cluster_name,
+        "scaling": scaling
+    }
+    if scaling is not None:
+        trigger_scaling(body)
     return 'OK', 204
 
 
-def calc_slope(minuets):
+def calc_slope(minuets, cluster):
     """
     calculate the slope of available memory change
     :param minuets:
     """
 
-    met = metrics.Metrics()
+    met = metrics.Metrics(cluster)
     series = met.read_timeseries('YARNMemoryAvailablePercentage', minuets)
     retlist = []
     x = []
@@ -87,25 +92,36 @@ def calc_slope(minuets):
     return slope
 
 
-def calc_scale(current_nodes):
+def calc_scale(current_worker_nodes, current_preemptible_nodes,
+               preemptiblepct, cluster_name):
     """
     How many nodes to add
-    :param current_nodes:
+    :param current_worker_nodes, current_preemptible_nodes,
+               preemptiblepct, cluster_name:
     :return:
     """
-    scaling_by = current_nodes + (1 / calc_slope(60))
-    logging.info("Scaling to {}".format(scaling_by))
-    return int(scaling_by)
+    new_workers = current_worker_nodes + (1 / calc_slope(60, cluster_name)) * (
+            1 - preemptiblepct) / 100
+    new_preemptibe = current_preemptible_nodes + (
+            1 / calc_slope(60, cluster_name)) * (
+                             preemptiblepct / 100)
+    logging.info("Scaling to {}".format(new_workers, new_preemptibe))
+    return int(new_workers), int(new_preemptibe)
 
 
-def do_scale():
+def do_scale(payload):
     """
     Perform the scaling
     :return:
     """
-    dp = dataproc_monitoring.DataProc()
+    data = json.loads(base64.b64decode(payload))
+    dp = dataproc_monitoring.DataProc(data['cluster'])
+    cluster_settings = settings.get_cluster_settings(data['cluster'])
+    preemptiblepct = cluster_settings.PreemptiblePct
     try:
         cluster_status = dp.get_cluster_status()
+        current_worker_nodes = int(dp.get_number_of_workers())
+        current_preemptible_nodes = int(dp.get_number_of_preemptible_workers())
         current_nodes = int(dp.get_number_of_nodes())
     except dataproc_monitoring.DataProcException as e:
         logging.error(e)
@@ -114,18 +130,26 @@ def do_scale():
         logging.info("Cluster not ready for update status {}".format(
             cluster_status))
         return 'Not Modified', 200
-    scaling_by = calc_scale(current_nodes)
-    new_size = current_nodes + scaling_by
-    if new_size > settings.get_key('MaxInstances'):
-        new_size = settings.get_key('MaxInstances')
-    if new_size < settings.get_key('MinInstances'):
-        new_size = settings.get_key('MinInstances')
-    if new_size == current_nodes:
+    new_workers, new_preemptibel = calc_scale(current_worker_nodes,
+                                              current_preemptible_nodes,
+                                              preemptiblepct, data['cluster'])
+    if new_workers < cluster_settings.MinInstances:
+        new_workers = cluster_settings.MinInstances
+    if (new_preemptibel + new_workers) > cluster_settings.MaxInstances:
+        diff = (new_preemptibel + new_workers) - cluster_settings.MaxInstances
+        new_preemptibel = new_preemptibel - int(
+            diff * (preemptiblepct / 100)) - 1
+        new_workers = new_workers - int(diff * (1 - preemptiblepct / 100))
+        if new_workers < cluster_settings.MinInstances:
+            new_workers = cluster_settings.MinInstances
+
+    if (new_preemptibel + new_workers) == current_nodes:
         return 'Not Modified', 200
     logging.info(
-        "Updating cluster from {} to {} nodes".format(current_nodes, new_size))
+        "Updating cluster from {} to {} nodes".format(current_nodes,
+                                                      new_preemptibel + new_workers))
     try:
-        dp.patch_cluster(new_size)
+        dp.patch_cluster(new_workers, new_preemptibel)
     except dataproc_monitoring.DataProcException as e:
         logging.error(e)
         return 'Error', 500

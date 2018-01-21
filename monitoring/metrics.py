@@ -3,10 +3,9 @@ import datetime
 import logging
 
 import googleapiclient.discovery
+from google.appengine.api import app_identity
 from google.auth import app_engine
 from googleapiclient.errors import HttpError
-
-from util import settings
 
 SCOPES = ('https://www.googleapis.com/auth/monitoring',
           'https://www.googleapis.com/auth/cloud-platform')
@@ -46,19 +45,18 @@ class Metrics:
     Writing and reading metrics
     """
 
-    def __init__(self):
+    def __init__(self, cluster_name):
         self.monitorservice = googleapiclient.discovery.build('monitoring',
                                                               'v3',
                                                               credentials=credentials)
         self.project_resource = "projects/{0}".format(
-            settings.get_key('project_id'))
+            app_identity.get_application_id())
         self.metric_domain = 'custom.googleapis.com'
-        self.cluster_name = settings.get_key('cluster')
-        self.region = settings.get_key('cluster')
+        self.cluster_name = cluster_name
         self.create_custom_metric('ContainerPendingRatio')
         self.create_custom_metric('YARNMemoryAvailablePercentage')
         self.create_custom_metric('YarnNodes')
-        self.project_id = settings.get_key('project_id')
+        self.project_id = app_identity.get_application_id()
 
     def write_timeseries_value(self, custom_metric_type, data_point):
         """Write the custom metric obtained."""
@@ -77,7 +75,8 @@ class Metrics:
                                }
                            ], 'metric': {'type': custom_metric},
                            "resource": {"type": 'global', "labels": {
-                               'project_id': self.project_id
+                               'project_id': self.project_id,
+                               'cluster': self.cluster_name
                            }}
                            }
         try:
@@ -101,7 +100,8 @@ class Metrics:
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
         default_request_kwargs = dict(
             name=self.project_resource,
-            filter='metric.type="{0}"'.format(custom_metric),
+            filter='metric.type="{0}" AND metric.label.cluster="{}"'.format(
+                custom_metric, self.cluster_name),
             pageSize=10000,
             interval_startTime=get_start_time(minutes),
             interval_endTime=get_now_rfc3339())

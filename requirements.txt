@@ -9,3 +9,4 @@ numpy==1.6.1
 flask-admin
 wtforms_appengine
 flask_wtf
+backoff==1.4.3

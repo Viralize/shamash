@@ -1,11 +1,13 @@
 """Interact with pub/sub"""
 import logging
 
-from google.appengine.api import app_identity
+import backoff
 from google.auth import app_engine
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError
+
 from util import utils
+
 PUBSUB_SCOPES = ['https://www.googleapis.com/auth/pubsub',
                  'https://www.googleapis.com/auth/cloud-platform']
 credentials = app_engine.Credentials(scopes=PUBSUB_SCOPES)
@@ -33,9 +35,16 @@ def publish(client, body, topic):
     """Publish a message to a Pub/Sub topic"""
     project = 'projects/{}'.format(utils.get_project_id())
     dest_topic = project + '/topics/' + topic
-    try:
+
+    @backoff.on_exception(backoff.expo,
+                          HttpError,
+                          max_tries=3, giveup=utils.fatal_code)
+    def _do_request():
         client.projects().topics().publish(topic=dest_topic,
                                            body=body).execute()
+
+    try:
+        _do_request()
     except HttpError as e:
         logging.error(e)
         raise PubSubException(e)
@@ -59,10 +68,17 @@ def pull(client, sub, endpoint):
         utils.get_project_id(),
         sub)
     body = {'pushConfig': {'pushEndpoint': endpoint}}
-    try:
+
+    @backoff.on_exception(backoff.expo,
+                          HttpError,
+                          max_tries=3, giveup=utils.fatal_code)
+    def _do_request():
         client.projects().subscriptions().modifyPushConfig(
             subscription=subscription,
             body=body).execute()
+
+    try:
+        _do_request()
     except HttpError as e:
 
         logging.error(e)

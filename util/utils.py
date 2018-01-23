@@ -40,3 +40,7 @@ def get_host_name():
     else:
         hostname = "{}.appspot.com".format(_get_project_id())
     return hostname
+
+
+def fatal_code(e):
+    return e.resp.status < 500

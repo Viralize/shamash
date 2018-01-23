@@ -1,18 +1,18 @@
-"""Entry point for Shmaash"""
+"""Entry point for Shamash"""
 import logging
 
 import flask_admin
 from flask import Flask, request, redirect
-from flask_admin.contrib import appengine
-from google.appengine.api import app_identity
 
-from monitoring import dataproc_monitoring
+from model import settings
+from monitoring import dataproc_monitoring, metrics
 from scaling import scaling
-from util import pubsub, settings
+from util import utils, pubsub
+from view import AdminCustomView
 
 app = Flask(__name__)
 
-# Create dummy secrey key so we can use sessions
+# Create dummy secret key so we can use sessions
 app.config['SECRET_KEY'] = '123456790'
 app.config['FLASK_ADMIN_SWATCH'] = 'slate'
 
@@ -21,24 +21,18 @@ def create_app():
     """
     Do initialization
     """
-    hostname = app_identity.get_default_version_hostname()
+
+    hostname = utils.get_host_name()
     admin = flask_admin.Admin(app, 'Admin',
                               base_template='layout.html',
                               template_mode='bootstrap3')
-    view = appengine.ModelView(settings.Settings)
-    view.list_template = 'list.html'
-    view.edit_template = 'edit.html'
-    view.create_template = 'create.html'
-    admin.add_view(view)
-    q = settings.get_all_clusters_settings()
-    for result in q.iter():
-        print(result.Cluster)
-    z = settings.get_cluster_settings('igor')
 
-    for r in z:
-        print r.Region
-    return
+    admin.add_view(AdminCustomView.AdminCustomView(settings.Settings))
     logging.info("Starting {} on {}".format("Shamash", hostname))
+    clusters = settings.get_all_clusters_settings()
+    for cluster in clusters.iter():
+        met = metrics.Metrics(cluster.Cluster)
+    met.init_metrics()
     client = pubsub.get_pubsub_client()
     pubsub.pull(client, 'monitoring',
                 "https://{}/get_monitoring_data".format(hostname))
@@ -70,7 +64,7 @@ def get_monitoring_data():
 @app.route('/scale', methods=['POST'])
 def scale():
     """
-    Called whenwe decide  to scale is made
+    Called when decide  to scale is made
     :return:
     """
     return scaling.do_scale(request.json['message']['data'])

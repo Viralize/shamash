@@ -16,3 +16,8 @@ However, while autoscaling has become state-of-the-art for applications in GCP, 
 The "Shamash" autoscaling tool actively monitors the performance of a Dataproc clusters and automatically scales the cluster up and down where appropriate. Shamash adds and remove nodes based on the current load of the cluster.
 
 Shamash is build on top of Google App Engine utilizing a serveries architecture. 
+
+###Highlights
+* Serverless operation
+* Support multiple clusters (each with his own configuration)
+* Works without any change to the cluster

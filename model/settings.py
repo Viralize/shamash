@@ -1,8 +1,9 @@
 """"Settings"""
 import googleapiclient.discovery
-from google.appengine.api import app_identity
 from google.appengine.ext import ndb
 from google.auth import app_engine
+
+from util import utils
 
 SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
 credentials = app_engine.Credentials(scopes=SCOPES)
@@ -14,8 +15,9 @@ def get_regions():
     :return: all regions
     """
     compute = googleapiclient.discovery.build('compute', 'v1')
+
     request = compute.regions().list(
-        project=app_identity.get_application_id())
+        project=utils.get_project_id())
 
     response = request.execute()
     rg = []
@@ -29,7 +31,7 @@ def get_regions():
 
 class Settings(ndb.Model):
     """
-    Seeting managmnet for Shamash
+    Setting management for Shamash
     """
     Cluster = ndb.StringProperty(indexed=True)
     Region = ndb.StringProperty(choices=get_regions(), default='us-east1')
@@ -41,13 +43,13 @@ class Settings(ndb.Model):
     MinInstances = ndb.IntegerProperty(default=2)
 
 
-def get_cluster_settings(cluser_name):
+def get_cluster_settings(cluster_name):
     """
 
-    :param cluser_name:
+    :param cluster_name:
     :return:
     """
-    return Settings.query(Settings.Cluster == cluser_name)
+    return Settings.query(Settings.Cluster == cluster_name)
 
 
 def get_all_clusters_settings():

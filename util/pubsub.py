@@ -5,9 +5,7 @@ from google.appengine.api import app_identity
 from google.auth import app_engine
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError
-
-from . import settings
-
+from util import utils
 PUBSUB_SCOPES = ['https://www.googleapis.com/auth/pubsub',
                  'https://www.googleapis.com/auth/cloud-platform']
 credentials = app_engine.Credentials(scopes=PUBSUB_SCOPES)
@@ -33,7 +31,7 @@ def get_pubsub_client():
 
 def publish(client, body, topic):
     """Publish a message to a Pub/Sub topic"""
-    project = 'projects/{}'.format(app_identity.get_application_id())
+    project = 'projects/{}'.format(utils.get_project_id())
     dest_topic = project + '/topics/' + topic
     try:
         client.projects().topics().publish(topic=dest_topic,
@@ -58,7 +56,7 @@ def pull(client, sub, endpoint):
     """Register a listener endpoint """
 
     subscription = get_full_subscription_name(
-        app_identity.get_application_id(),
+        utils.get_project_id(),
         sub)
     body = {'pushConfig': {'pushEndpoint': endpoint}}
     try:
@@ -66,6 +64,7 @@ def pull(client, sub, endpoint):
             subscription=subscription,
             body=body).execute()
     except HttpError as e:
+
         logging.error(e)
         return 'Error', 500
     return 'ok, 204'

@@ -9,8 +9,9 @@ from google.appengine.api import app_identity
 from google.auth import app_engine
 from googleapiclient.errors import HttpError
 
-from util import pubsub, settings
-
+from util import pubsub
+from model import settings
+from util import utils
 SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
 
 MONITORING_TOPIC = 'shamash-monitoring'
@@ -35,19 +36,22 @@ class DataProc:
     """
 
     def __init__(self, cluster):
-        self.dataproc = googleapiclient.discovery.build('dataproc', 'v1',
-                                                        credentials=credentials)
+        self.dataproc = googleapiclient.discovery. \
+            build('dataproc', 'v1',
+                  credentials=credentials)
         self.cluster = cluster
-        self.project_id = app_identity.get_application_id()
-        self.cluster_settings = settings.get_cluster_settings(cluster)
+        self.project_id = utils.get_project_id()
+        s = settings.get_cluster_settings(cluster)
+        for st in s:
+            self.cluster_settings = st
 
     def __get_cluster_data(self):
         """Get a json with cluster data/status."""
         try:
             return self.dataproc.projects().regions().clusters().get(
-                projectId=app_identity.get_application_id(),
+                projectId=utils.get_project_id(),
                 region=self.cluster_settings.Region,
-                clusterName=self.cluster)
+                clusterName=self.cluster).execute()
         except HttpError as e:
             logging.error(e)
             raise e
@@ -58,6 +62,7 @@ class DataProc:
             cluster_data = self.__get_cluster_data()
             status = cluster_data['status']['state']
         except (HttpError, KeyError) as e:
+            logging.error(e)
             raise DataProcException(e)
         return status
 
@@ -77,6 +82,7 @@ class DataProc:
                    int(res["metrics"]["yarnMetrics"][
                            "yarn-memory-mb-available"])
         except (HttpError, KeyError) as e:
+            logging.error(e)
             raise DataProcException(e)
 
     def get_container_pending_ratio(self):
@@ -84,14 +90,14 @@ class DataProc:
         try:
             res = self.__get_cluster_data()
             yarn_container_allocated = int(
-                res["metrics"]["yarnMetrics"][
-                    "yarn-containers-allocated"])
+                res["metrics"]["yarnMetrics"]["yarn-containers-allocated"])
             if yarn_container_allocated == 0:
                 return -1
             return int(res["metrics"]["yarnMetrics"][
                            "yarn-containers-pending"]) / \
                    yarn_container_allocated
         except (HttpError, KeyError) as e:
+            logging.error(e)
             raise DataProcException(e)
 
     def get_number_of_nodes(self):
@@ -101,6 +107,7 @@ class DataProc:
             nodes = int(res["metrics"]["yarnMetrics"][
                             "yarn-nodes-active"])
         except (HttpError, KeyError) as e:
+            logging.error(e)
             raise DataProcException(e)
         return nodes
 
@@ -109,8 +116,9 @@ class DataProc:
         try:
             nodes = 0
             res = self.__get_cluster_data()
-            nodes = int(res["workerConfig"]["numInstances"])
+            nodes = int(res['config']["workerConfig"]["numInstances"])
         except (HttpError, KeyError) as e:
+            logging.error(e)
             raise DataProcException(e)
         return nodes
 
@@ -119,16 +127,19 @@ class DataProc:
         try:
             nodes = 0
             res = self.__get_cluster_data()
-            nodes = int(res["secondaryWorkerConfig"]["numInstances"])
-        except (HttpError, KeyError) as e:
+            nodes = int(res['config']["secondaryWorkerConfig"]["numInstances"])
+        except HttpError as e:
+            logging.error(e)
             raise DataProcException(e)
+        except KeyError as e:
+            logging.info(e)
         return nodes
 
     def patch_cluster(self, worker_nodes, preemptible_nodes):
         """Update number of nodes in a cluster"""
         try:
             body = json.loads(
-                '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' % preemptible_nodes)
+                '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}'% preemptible_nodes)
             self.dataproc.projects().regions().clusters().patch(
                 projectId=self.project_id,
                 region=self.cluster_settings.Region,

@@ -3,9 +3,10 @@ import datetime
 import logging
 
 import googleapiclient.discovery
-from google.appengine.api import app_identity
 from google.auth import app_engine
 from googleapiclient.errors import HttpError
+
+from util import utils
 
 SCOPES = ('https://www.googleapis.com/auth/monitoring',
           'https://www.googleapis.com/auth/cloud-platform')
@@ -46,17 +47,22 @@ class Metrics:
     """
 
     def __init__(self, cluster_name):
-        self.monitorservice = googleapiclient.discovery.build('monitoring',
-                                                              'v3',
-                                                              credentials=credentials)
+        self.monitorservice = googleapiclient.discovery. \
+            build('monitoring',
+                  'v3',
+                  credentials=credentials)
+        self.project_id = utils.get_project_id()
         self.project_resource = "projects/{0}".format(
-            app_identity.get_application_id())
+            self.project_id)
         self.metric_domain = 'custom.googleapis.com'
         self.cluster_name = cluster_name
-        self.create_custom_metric('ContainerPendingRatio')
-        self.create_custom_metric('YARNMemoryAvailablePercentage')
-        self.create_custom_metric('YarnNodes')
-        self.project_id = app_identity.get_application_id()
+
+    def init_metrics(self):
+        metrics = ['ContainerPendingRatio', 'YARNMemoryAvailablePercentage',
+                   'YarnNodes']
+        for met in metrics:
+            if not self._custome_metric_exists(met):
+                self._create_custom_metric(met)
 
     def write_timeseries_value(self, custom_metric_type, data_point):
         """Write the custom metric obtained."""
@@ -73,10 +79,12 @@ class Metrics:
                                        "doubleValue": data_point
                                    }
                                }
-                           ], 'metric': {'type': custom_metric},
+                           ],
+                           'metric': {'type': custom_metric, "labels": {
+                               'cluster_name': self.cluster_name
+                           }},
                            "resource": {"type": 'global', "labels": {
-                               'project_id': self.project_id,
-                               'cluster': self.cluster_name
+                               'project_id': self.project_id
                            }}
                            }
         try:
@@ -100,7 +108,7 @@ class Metrics:
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
         default_request_kwargs = dict(
             name=self.project_resource,
-            filter='metric.type="{0}" AND metric.label.cluster="{}"'.format(
+            filter='metric.type="{0}" AND metric.labels.cluster_name="{1}"'.format(
                 custom_metric, self.cluster_name),
             pageSize=10000,
             interval_startTime=get_start_time(minutes),
@@ -128,8 +136,9 @@ class Metrics:
             return out
         return out
 
-    def create_custom_metric(self, custom_metric_type):
+    def _create_custom_metric(self, custom_metric_type):
         """Create custom metric descriptor"""
+        self._custome_metric_exists(custom_metric_type)
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
         metrics_descriptor = {"type": custom_metric, "metricKind": "GAUGE",
                               "valueType": "DOUBLE",
@@ -143,3 +152,15 @@ class Metrics:
         except HttpError as e:
             logging.error(e)
         return
+
+    def _custome_metric_exists(self, custom_metric_type):
+        custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
+        try:
+            self.monitorservice.projects().metricDescriptors().list(
+                name=self.project_resource,
+                filter='metric.type="{0}"'.format(custom_metric),
+            ).execute()
+            return True
+        except HttpError as e:
+            logging.error(e)
+            return False

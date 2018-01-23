@@ -4,14 +4,14 @@ import json
 import logging
 import time
 
+import backoff
 import googleapiclient.discovery
-from google.appengine.api import app_identity
 from google.auth import app_engine
 from googleapiclient.errors import HttpError
 
-from util import pubsub
 from model import settings
-from util import utils
+from util import pubsub, utils
+
 SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
 
 MONITORING_TOPIC = 'shamash-monitoring'
@@ -47,11 +47,18 @@ class DataProc:
 
     def __get_cluster_data(self):
         """Get a json with cluster data/status."""
-        try:
+
+        @backoff.on_exception(backoff.expo,
+                              HttpError,
+                              max_tries=3, giveup=utils.fatal_code)
+        def _do_request():
             return self.dataproc.projects().regions().clusters().get(
                 projectId=utils.get_project_id(),
                 region=self.cluster_settings.Region,
                 clusterName=self.cluster).execute()
+
+        try:
+            _do_request()
         except HttpError as e:
             logging.error(e)
             raise e
@@ -139,7 +146,7 @@ class DataProc:
         """Update number of nodes in a cluster"""
         try:
             body = json.loads(
-                '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}'% preemptible_nodes)
+                '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' % preemptible_nodes)
             self.dataproc.projects().regions().clusters().patch(
                 projectId=self.project_id,
                 region=self.cluster_settings.Region,
@@ -151,12 +158,22 @@ class DataProc:
                 time.sleep(1)
             body = json.loads(
                 '{"config":{"workerConfig":{"numInstances":%d}}}' % worker_nodes)
+        except HttpError as e:
+            raise DataProcException(e)
+
+        @backoff.on_exception(backoff.expo,
+                              HttpError,
+                              max_tries=3, giveup=utils.fatal_code)
+        def _do_request():
             self.dataproc.projects().regions().clusters().patch(
                 projectId=self.project_id,
                 region=self.cluster_settings.Region,
                 clusterName=self.cluster,
                 updateMask='config.worker_config.num_instances',
                 body=body).execute()
+
+        try:
+            _do_request()
         except HttpError as e:
             raise DataProcException(e)
 

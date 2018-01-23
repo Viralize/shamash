@@ -32,7 +32,7 @@ def create_app():
     clusters = settings.get_all_clusters_settings()
     for cluster in clusters.iter():
         met = metrics.Metrics(cluster.Cluster)
-    met.init_metrics()
+        met.init_metrics()
     client = pubsub.get_pubsub_client()
     pubsub.pull(client, 'monitoring',
                 "https://{}/get_monitoring_data".format(hostname))

@@ -2,6 +2,7 @@
 import datetime
 import logging
 
+import backoff
 import googleapiclient.discovery
 from google.auth import app_engine
 from googleapiclient.errors import HttpError
@@ -87,10 +88,17 @@ class Metrics:
                                'project_id': self.project_id
                            }}
                            }
-        try:
+
+        @backoff.on_exception(backoff.expo,
+                              HttpError,
+                              max_tries=3, giveup=utils.fatal_code)
+        def _do_request():
             self.monitorservice.projects().timeSeries().create(
                 name=self.project_resource,
                 body={"timeSeries": [timeseries_data]}).execute()
+
+        try:
+            _do_request()
             return True
         except HttpError as e:
             logging.error(e)
@@ -114,6 +122,9 @@ class Metrics:
             interval_startTime=get_start_time(minutes),
             interval_endTime=get_now_rfc3339())
 
+        @backoff.on_exception(backoff.expo,
+                              HttpError,
+                              max_tries=3, giveup=utils.fatal_code)
         def _do_request(next_page_token=None):
             kwargs = default_request_kwargs.copy()
             if next_page_token:
@@ -122,18 +133,20 @@ class Metrics:
                 **kwargs)
             return req.execute()
 
-        response = _do_request()
-        out.extend(response.get('timeSeries', []))
-
-        next_token = response.get('nextPageToken')
         try:
+            response = _do_request()
+
+            out.extend(response.get('timeSeries', []))
+
+            next_token = response.get('nextPageToken')
+
             while next_token:
                 response = _do_request(next_token)
                 out.extend(response.get('timeSeries', []))
                 next_token = response.get('nextPageToken')
         except HttpError as e:
-            logging.error(e)
-            return out
+            logging.info(e)
+
         return out
 
     def _create_custom_metric(self, custom_metric_type):
@@ -146,20 +159,34 @@ class Metrics:
         metrics_descriptor['name'] = "{}/metricDescriptors/{}".format(
             self.project_resource, custom_metric_type)
         metrics_descriptor['type'] = custom_metric
-        try:
+
+        @backoff.on_exception(backoff.expo,
+                              HttpError,
+                              max_tries=3, giveup=utils.fatal_code)
+        def _do_request():
             self.monitorservice.projects().metricDescriptors().create(
                 name=self.project_resource, body=metrics_descriptor).execute()
+
+        try:
+            _do_request()
         except HttpError as e:
             logging.error(e)
         return
 
     def _custome_metric_exists(self, custom_metric_type):
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
-        try:
+
+        @backoff.on_exception(backoff.expo,
+                              HttpError,
+                              max_tries=3, giveup=utils.fatal_code)
+        def _do_request():
             self.monitorservice.projects().metricDescriptors().list(
                 name=self.project_resource,
                 filter='metric.type="{0}"'.format(custom_metric),
             ).execute()
+
+        try:
+            _do_request()
             return True
         except HttpError as e:
             logging.error(e)

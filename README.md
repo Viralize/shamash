@@ -17,7 +17,7 @@ The "Shamash" autoscaling tool actively monitors the performance of a Dataproc c
 
 Shamash is build on top of Google App Engine utilizing a serveries architecture. 
 
-###Highlights
+### Highlights
 * Serverless operation
 * Support multiple clusters (each with his own configuration)
 * Works without any change to the cluster

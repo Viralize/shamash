@@ -16,8 +16,7 @@ def get_regions():
     """
     compute = googleapiclient.discovery.build('compute', 'v1')
 
-    request = compute.regions().list(
-        project=utils.get_project_id())
+    request = compute.regions().list(project=utils.get_project_id())
 
     response = request.execute()
     rg = []

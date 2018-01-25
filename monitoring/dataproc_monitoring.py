@@ -48,9 +48,8 @@ class DataProc:
     def __get_cluster_data(self):
         """Get a json with cluster data/status."""
 
-        @backoff.on_exception(backoff.expo,
-                              HttpError,
-                              max_tries=3, giveup=utils.fatal_code)
+        @backoff.on_exception(
+            backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
         def _do_request():
             return self.dataproc.projects().regions().clusters().get(
                 projectId=utils.get_project_id(),
@@ -80,10 +79,10 @@ class DataProc:
         try:
             res = self.__get_cluster_data()
             if int(res["metrics"]["yarnMetrics"][
-                       "yarn-memory-mb-allocated"]) == 0:
+                    "yarn-memory-mb-allocated"]) == 0:
                 return -1
             if int(res["metrics"]["yarnMetrics"][
-                       "yarn-memory-mb-available"]) == 0:
+                    "yarn-memory-mb-available"]) == 0:
                 return 0
             return int(
                 res["metrics"]["yarnMetrics"]["yarn-memory-mb-allocated"]) / \
@@ -103,8 +102,8 @@ class DataProc:
             res = self.__get_cluster_data()
             yarn_container_allocated = int(
                 res["metrics"]["yarnMetrics"]["yarn-containers-allocated"])
-            yarn_containers_pending = int(res["metrics"]["yarnMetrics"][
-                                              "yarn-containers-pending"])
+            yarn_containers_pending = int(
+                res["metrics"]["yarnMetrics"]["yarn-containers-pending"])
             if yarn_container_allocated == 0:
                 return yarn_containers_pending
             return yarn_containers_pending / yarn_container_allocated
@@ -116,8 +115,7 @@ class DataProc:
         """Get the number of active nodes in a cluster"""
         try:
             res = self.__get_cluster_data()
-            nodes = int(res["metrics"]["yarnMetrics"][
-                            "yarn-nodes-active"])
+            nodes = int(res["metrics"]["yarnMetrics"]["yarn-nodes-active"])
         except (HttpError, KeyError) as e:
             logging.error(e)
             raise DataProcException(e)
@@ -164,7 +162,8 @@ class DataProc:
         """Update number of nodes in a cluster"""
         try:
             body = json.loads(
-                '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' % preemptible_nodes)
+                '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' %
+                preemptible_nodes)
             self.dataproc.projects().regions().clusters().patch(
                 projectId=self.project_id,
                 region=self.cluster_settings.Region,
@@ -174,14 +173,13 @@ class DataProc:
             """Wait for cluster"""
             while self.get_cluster_status().lower() != 'running':
                 time.sleep(1)
-            body = json.loads(
-                '{"config":{"workerConfig":{"numInstances":%d}}}' % worker_nodes)
+            body = json.loads('{"config":{"workerConfig":{"numInstances":%d}}}'
+                              % worker_nodes)
         except HttpError as e:
             raise DataProcException(e)
 
-        @backoff.on_exception(backoff.expo,
-                              HttpError,
-                              max_tries=3, giveup=utils.fatal_code)
+        @backoff.on_exception(
+            backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
         def _do_request():
             self.dataproc.projects().regions().clusters().patch(
                 projectId=self.project_id,
@@ -203,23 +201,29 @@ def check_load():
         dp = DataProc(cluster.Cluster)
         try:
             monitor_data = {
-                "cluster": cluster.Cluster,
-                "yarn_memory_available_percentage": int(
-                    dp.get_yarn_memory_available_percentage()),
-                "container_pending_ratio": float(
-                    dp.get_container_pending_ratio()),
-                "number_of_nodes": int(dp.get_number_of_nodes()),
-                "worker_nodes": int(dp.get_number_of_workers()),
-                'preemptible_nodes': int(
-                    dp.get_number_of_preemptible_workers()),
-                'yarn_containers_pending': int(
-                    dp.get_yarn_containers_pending())
+                "cluster":
+                cluster.Cluster,
+                "yarn_memory_available_percentage":
+                int(dp.get_yarn_memory_available_percentage()),
+                "container_pending_ratio":
+                float(dp.get_container_pending_ratio()),
+                "number_of_nodes":
+                int(dp.get_number_of_nodes()),
+                "worker_nodes":
+                int(dp.get_number_of_workers()),
+                'preemptible_nodes':
+                int(dp.get_number_of_preemptible_workers()),
+                'yarn_containers_pending':
+                int(dp.get_yarn_containers_pending())
             }
         except DataProcException as e:
             logging.error(e)
             return 'Error', 500
         msg = {
-            'messages': [{'data': base64.b64encode(json.dumps(monitor_data))}]}
+            'messages': [{
+                'data': base64.b64encode(json.dumps(monitor_data))
+            }]
+        }
         pubsub_client = pubsub.get_pubsub_client()
         try:
             pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)

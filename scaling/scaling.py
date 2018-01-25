@@ -45,9 +45,8 @@ def should_scale(payload):
         cluster_settings = st
     logging.info(
         "Cluster {} YARNMemAvailPct {} ContainerPendingRatio {}".format(
-            cluster_name,
-            yarn_memory_available_percentage, container_pending_ratio,
-            number_of_nodes))
+            cluster_name, yarn_memory_available_percentage,
+            container_pending_ratio, number_of_nodes))
     met = metrics.Metrics(cluster_name)
     met.write_timeseries_value('YARNMemoryAvailablePercentage',
                                yarn_memory_available_percentage)
@@ -110,8 +109,8 @@ def calc_slope(minuets, cluster):
     return slope
 
 
-def calc_scale(current_worker_nodes, current_preemptible_nodes,
-               preemptiblepct, cluster_name, containerpendingratio):
+def calc_scale(current_worker_nodes, current_preemptible_nodes, preemptiblepct,
+               cluster_name, containerpendingratio):
     """
     How many nodes to add
     :param current_worker_nodes, current_preemptible_nodes,
@@ -123,11 +122,11 @@ def calc_scale(current_worker_nodes, current_preemptible_nodes,
     current_preemptible_nodes = max(current_preemptible_nodes, 1)
     if containerpendingratio != -1:
         new_workers = current_worker_nodes + (
-                1 - preemptiblepct) * current_worker_nodes * (
-                              1 / containerpendingratio)
+            1 - preemptiblepct) * current_worker_nodes * (
+                1 / containerpendingratio)
         new_preemptibel = current_preemptible_nodes + (
-                preemptiblepct / 100) * current_preemptible_nodes * (
-                                  1 / containerpendingratio)
+            preemptiblepct / 100) * current_preemptible_nodes * (
+                1 / containerpendingratio)
     else:
         sl = calc_slope(60, cluster_name)
         if sl != 0:
@@ -135,13 +134,12 @@ def calc_scale(current_worker_nodes, current_preemptible_nodes,
             logging.info('Slope is {}'.format(slope))
             if slope != 0:
                 new_workers = current_worker_nodes + slope * (
-                        1 - (preemptiblepct / 100))
+                    1 - (preemptiblepct / 100))
                 new_preemptibel = current_preemptible_nodes + slope * (
-                        preemptiblepct / 100)
+                    preemptiblepct / 100)
                 logging.info(new_preemptibel)
-    logging.info(
-        "Scaling to workers   {} preemptibel {} ".format(new_workers,
-                                                         new_preemptibel))
+    logging.info("Scaling to workers   {} preemptibel {} ".format(
+        new_workers, new_preemptibel))
     return int(new_workers), int(new_preemptibel)
 
 
@@ -165,8 +163,8 @@ def do_scale(payload):
         logging.error(e)
         return 'Error', 500
     if cluster_status.lower() != 'running':
-        logging.info("Cluster not ready for update status {}".format(
-            cluster_status))
+        logging.info(
+            "Cluster not ready for update status {}".format(cluster_status))
         return 'Not Modified', 200
 
     if preemptiblepct != 100:
@@ -189,17 +187,13 @@ def do_scale(payload):
 
         if (new_preemptibel + new_workers) > cluster_settings.MaxInstances:
             new_workers, new_preemptibel = scale_calculations.calc_max_nodes_combination(
-                cluster_settings.MaxInstances,
-                ratio,
+                cluster_settings.MaxInstances, ratio,
                 cluster_settings.MinInstances)
 
     else:
-        new_workers, new_preemptibel = calc_scale(current_worker_nodes,
-                                                  current_preemptible_nodes,
-                                                  preemptiblepct,
-                                                  data['cluster'],
-                                                  data[
-                                                      'containerpendingratio'])
+        new_workers, new_preemptibel = calc_scale(
+            current_worker_nodes, current_preemptible_nodes, preemptiblepct,
+            data['cluster'], data['containerpendingratio'])
         # check boundaries
         # make sure the we have the minimum number of workers
         if new_workers < cluster_settings.MinInstances:
@@ -211,8 +205,7 @@ def do_scale(payload):
             ratio = -1
         if (new_preemptibel + new_workers) > cluster_settings.MaxInstances:
             new_workers, new_preemptibel = scale_calculations.calc_max_nodes_combination(
-                cluster_settings.MaxInstances,
-                ratio,
+                cluster_settings.MaxInstances, ratio,
                 cluster_settings.MinInstances)
 
     # No need to change the cluster
@@ -223,10 +216,8 @@ def do_scale(payload):
         if current_preemptible_nodes == 0:
             new_preemptibel = 1
             new_workers = new_workers - 1
-    logging.info(
-        "Updating cluster from {} to {} nodes".format
-        (current_nodes,
-         new_preemptibel + new_workers))
+    logging.info("Updating cluster from {} to {} nodes".format(
+        current_nodes, new_preemptibel + new_workers))
     # do the scaling
     # if going down defere
     try:

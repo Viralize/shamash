@@ -23,9 +23,8 @@ def create_app():
     """
 
     hostname = utils.get_host_name()
-    admin = flask_admin.Admin(app, 'Admin',
-                              base_template='layout.html',
-                              template_mode='bootstrap3')
+    admin = flask_admin.Admin(
+        app, 'Admin', base_template='layout.html', template_mode='bootstrap3')
 
     admin.add_view(AdminCustomView(settings.Settings))
     logging.info("Starting {} on {}".format("Shamash", hostname))
@@ -37,8 +36,7 @@ def create_app():
     client = pubsub.get_pubsub_client()
     pubsub.pull(client, 'monitoring',
                 "https://{}/get_monitoring_data".format(hostname))
-    pubsub.pull(client, 'scaling',
-                "https://{}/scale".format(hostname))
+    pubsub.pull(client, 'scaling', "https://{}/scale".format(hostname))
 
 
 create_app()

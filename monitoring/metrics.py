@@ -53,13 +53,13 @@ class Metrics:
                   'v3',
                   credentials=credentials)
         self.project_id = utils.get_project_id()
-        self.project_resource = "projects/{0}".format(
-            self.project_id)
+        self.project_resource = "projects/{0}".format(self.project_id)
         self.metric_domain = 'custom.googleapis.com'
         self.cluster_name = cluster_name
-        self.metrics = ['ContainerPendingRatio',
-                        'YARNMemoryAvailablePercentage',
-                        'YarnNodes']
+        self.metrics = [
+            'ContainerPendingRatio', 'YARNMemoryAvailablePercentage',
+            'YarnNodes'
+        ]
 
     def init_metrics(self):
         for met in self.metrics:
@@ -70,33 +70,42 @@ class Metrics:
         """Write the custom metric obtained."""
         now = get_now_rfc3339()
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
-        timeseries_data = {"metricKind": "GAUGE", "valueType": "DOUBLE",
-                           "points": [
-                               {
-                                   "interval": {
-                                       "startTime": now,
-                                       "endTime": now
-                                   },
-                                   "value": {
-                                       "doubleValue": data_point
-                                   }
-                               }
-                           ],
-                           'metric': {'type': custom_metric, "labels": {
-                               'cluster_name': self.cluster_name
-                           }},
-                           "resource": {"type": 'global', "labels": {
-                               'project_id': self.project_id
-                           }}
-                           }
+        timeseries_data = {
+            "metricKind":
+            "GAUGE",
+            "valueType":
+            "DOUBLE",
+            "points": [{
+                "interval": {
+                    "startTime": now,
+                    "endTime": now
+                },
+                "value": {
+                    "doubleValue": data_point
+                }
+            }],
+            'metric': {
+                'type': custom_metric,
+                "labels": {
+                    'cluster_name': self.cluster_name
+                }
+            },
+            "resource": {
+                "type": 'global',
+                "labels": {
+                    'project_id': self.project_id
+                }
+            }
+        }
 
-        @backoff.on_exception(backoff.expo,
-                              HttpError,
-                              max_tries=3, giveup=utils.fatal_code)
+        @backoff.on_exception(
+            backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
         def _do_request():
             self.monitorservice.projects().timeSeries().create(
                 name=self.project_resource,
-                body={"timeSeries": [timeseries_data]}).execute()
+                body={
+                    "timeSeries": [timeseries_data]
+                }).execute()
 
         try:
             _do_request()
@@ -117,21 +126,19 @@ class Metrics:
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
         default_request_kwargs = dict(
             name=self.project_resource,
-            filter='metric.type="{0}" AND metric.labels.cluster_name="{1}"'.format(
-                custom_metric, self.cluster_name),
+            filter='metric.type="{0}" AND metric.labels.cluster_name="{1}"'.
+            format(custom_metric, self.cluster_name),
             pageSize=10000,
             interval_startTime=get_start_time(minutes),
             interval_endTime=get_now_rfc3339())
 
-        @backoff.on_exception(backoff.expo,
-                              HttpError,
-                              max_tries=3, giveup=utils.fatal_code)
+        @backoff.on_exception(
+            backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
         def _do_request(next_page_token=None):
             kwargs = default_request_kwargs.copy()
             if next_page_token:
                 kwargs['nextPageToken'] = next_page_token
-            req = self.monitorservice.projects().timeSeries().list(
-                **kwargs)
+            req = self.monitorservice.projects().timeSeries().list(**kwargs)
             return req.execute()
 
         try:
@@ -153,16 +160,18 @@ class Metrics:
         """Create custom metric descriptor"""
         self._custome_metric_exists(custom_metric_type)
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
-        metrics_descriptor = {"type": custom_metric, "metricKind": "GAUGE",
-                              "valueType": "DOUBLE",
-                              "description": "Shamash Dataproc scaling"}
+        metrics_descriptor = {
+            "type": custom_metric,
+            "metricKind": "GAUGE",
+            "valueType": "DOUBLE",
+            "description": "Shamash Dataproc scaling"
+        }
         metrics_descriptor['name'] = "{}/metricDescriptors/{}".format(
             self.project_resource, custom_metric_type)
         metrics_descriptor['type'] = custom_metric
 
-        @backoff.on_exception(backoff.expo,
-                              HttpError,
-                              max_tries=3, giveup=utils.fatal_code)
+        @backoff.on_exception(
+            backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
         def _do_request():
             self.monitorservice.projects().metricDescriptors().create(
                 name=self.project_resource, body=metrics_descriptor).execute()
@@ -176,9 +185,8 @@ class Metrics:
     def _custome_metric_exists(self, custom_metric_type):
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
 
-        @backoff.on_exception(backoff.expo,
-                              HttpError,
-                              max_tries=3, giveup=utils.fatal_code)
+        @backoff.on_exception(
+            backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
         def _do_request():
             self.monitorservice.projects().metricDescriptors().list(
                 name=self.project_resource,

@@ -8,8 +8,10 @@ from googleapiclient.errors import HttpError
 
 from util import utils
 
-PUBSUB_SCOPES = ['https://www.googleapis.com/auth/pubsub',
-                 'https://www.googleapis.com/auth/cloud-platform']
+PUBSUB_SCOPES = [
+    'https://www.googleapis.com/auth/pubsub',
+    'https://www.googleapis.com/auth/cloud-platform'
+]
 credentials = app_engine.Credentials(scopes=PUBSUB_SCOPES)
 
 
@@ -27,8 +29,7 @@ class PubSubException(Exception):
 
 def get_pubsub_client():
     """Get a pubsub client from the API"""
-    return discovery.build('pubsub', 'v1',
-                           credentials=credentials)
+    return discovery.build('pubsub', 'v1', credentials=credentials)
 
 
 def publish(client, body, topic):
@@ -36,12 +37,11 @@ def publish(client, body, topic):
     project = 'projects/{}'.format(utils.get_project_id())
     dest_topic = project + '/topics/' + topic
 
-    @backoff.on_exception(backoff.expo,
-                          HttpError,
-                          max_tries=3, giveup=utils.fatal_code)
+    @backoff.on_exception(
+        backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
     def _do_request():
-        client.projects().topics().publish(topic=dest_topic,
-                                           body=body).execute()
+        client.projects().topics().publish(
+            topic=dest_topic, body=body).execute()
 
     try:
         _do_request()
@@ -64,18 +64,14 @@ def get_full_subscription_name(project, subscription):
 def pull(client, sub, endpoint):
     """Register a listener endpoint """
 
-    subscription = get_full_subscription_name(
-        utils.get_project_id(),
-        sub)
+    subscription = get_full_subscription_name(utils.get_project_id(), sub)
     body = {'pushConfig': {'pushEndpoint': endpoint}}
 
-    @backoff.on_exception(backoff.expo,
-                          HttpError,
-                          max_tries=3, giveup=utils.fatal_code)
+    @backoff.on_exception(
+        backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
     def _do_request():
         client.projects().subscriptions().modifyPushConfig(
-            subscription=subscription,
-            body=body).execute()
+            subscription=subscription, body=body).execute()
 
     try:
         _do_request()

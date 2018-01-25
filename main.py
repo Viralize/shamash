@@ -8,7 +8,7 @@ from model import settings
 from monitoring import dataproc_monitoring, metrics
 from scaling import scaling
 from util import utils, pubsub
-from view import AdminCustomView
+from view.AdminCustomView import AdminCustomView
 
 app = Flask(__name__)
 
@@ -27,12 +27,13 @@ def create_app():
                               base_template='layout.html',
                               template_mode='bootstrap3')
 
-    admin.add_view(AdminCustomView.AdminCustomView(settings.Settings))
+    admin.add_view(AdminCustomView(settings.Settings))
     logging.info("Starting {} on {}".format("Shamash", hostname))
     clusters = settings.get_all_clusters_settings()
     for cluster in clusters.iter():
         met = metrics.Metrics(cluster.Cluster)
         met.init_metrics()
+
     client = pubsub.get_pubsub_client()
     pubsub.pull(client, 'monitoring',
                 "https://{}/get_monitoring_data".format(hostname))

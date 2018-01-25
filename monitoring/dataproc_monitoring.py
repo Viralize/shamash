@@ -58,7 +58,7 @@ class DataProc:
                 clusterName=self.cluster).execute()
 
         try:
-            _do_request()
+            return _do_request()
         except HttpError as e:
             logging.error(e)
             raise e
@@ -74,8 +74,9 @@ class DataProc:
         return status
 
     def get_yarn_memory_available_percentage(self):
-        """Calculate cluster available memory %
-        yarn-memory-mb-allocated/yarn-memory-mb-available"""
+        """The percentage of remaining memory available to YARN
+        yarn-memory-mb-allocated/yarn-memory-mb-available
+        """
         try:
             res = self.__get_cluster_data()
             if int(res["metrics"]["yarnMetrics"][
@@ -84,8 +85,8 @@ class DataProc:
             if int(res["metrics"]["yarnMetrics"][
                        "yarn-memory-mb-available"]) == 0:
                 return 0
-            return int(res["metrics"]["yarnMetrics"][
-                           "yarn-memory-mb-allocated"]) / \
+            return int(
+                res["metrics"]["yarnMetrics"]["yarn-memory-mb-allocated"]) / \
                    int(res["metrics"]["yarnMetrics"][
                            "yarn-memory-mb-available"])
         except (HttpError, KeyError) as e:
@@ -93,16 +94,20 @@ class DataProc:
             raise DataProcException(e)
 
     def get_container_pending_ratio(self):
-        """Calculate the ratio between allocated and pending containers"""
+        """The ratio of pending containers to containers allocated
+        (ContainerPendingRatio = ContainerPending / ContainerAllocated).
+        If ContainerAllocated = 0, then ContainerPendingRatio = ContainerPending.
+         The value of ContainerPendingRatio represents a number, not a percentage.
+        """
         try:
             res = self.__get_cluster_data()
             yarn_container_allocated = int(
                 res["metrics"]["yarnMetrics"]["yarn-containers-allocated"])
+            yarn_containers_pending = int(res["metrics"]["yarnMetrics"][
+                                              "yarn-containers-pending"])
             if yarn_container_allocated == 0:
-                return -1
-            return int(res["metrics"]["yarnMetrics"][
-                           "yarn-containers-pending"]) / \
-                   yarn_container_allocated
+                return yarn_containers_pending
+            return yarn_containers_pending / yarn_container_allocated
         except (HttpError, KeyError) as e:
             logging.error(e)
             raise DataProcException(e)
@@ -128,6 +133,19 @@ class DataProc:
             logging.error(e)
             raise DataProcException(e)
         return nodes
+
+    def get_yarn_containers_pending(self):
+        pending = 0
+        try:
+            res = self.__get_cluster_data()
+            pending = int(
+                res["metrics"]["yarnMetrics"]["yarn-containers-pending"])
+        except HttpError as e:
+            logging.error(e)
+            raise DataProcException(e)
+        except KeyError as e:
+            logging.info(e)
+        return pending
 
     def get_number_of_preemptible_workers(self):
         """Get the number of 'real workers"""
@@ -193,7 +211,9 @@ def check_load():
                 "number_of_nodes": int(dp.get_number_of_nodes()),
                 "worker_nodes": int(dp.get_number_of_workers()),
                 'preemptible_nodes': int(
-                    dp.get_number_of_preemptible_workers())
+                    dp.get_number_of_preemptible_workers()),
+                'yarn_containers_pending': int(
+                    dp.get_yarn_containers_pending())
             }
         except DataProcException as e:
             logging.error(e)

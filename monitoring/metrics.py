@@ -57,11 +57,12 @@ class Metrics:
             self.project_id)
         self.metric_domain = 'custom.googleapis.com'
         self.cluster_name = cluster_name
+        self.metrics = ['ContainerPendingRatio',
+                        'YARNMemoryAvailablePercentage',
+                        'YarnNodes']
 
     def init_metrics(self):
-        metrics = ['ContainerPendingRatio', 'YARNMemoryAvailablePercentage',
-                   'YarnNodes']
-        for met in metrics:
+        for met in self.metrics:
             if not self._custome_metric_exists(met):
                 self._create_custom_metric(met)
 
@@ -146,7 +147,6 @@ class Metrics:
                 next_token = response.get('nextPageToken')
         except HttpError as e:
             logging.info(e)
-
         return out
 
     def _create_custom_metric(self, custom_metric_type):

@@ -2,7 +2,6 @@
 import flask_admin
 from flask_admin.contrib import appengine
 
-
 # TODO Add metrics one a new cluster is added
 
 
@@ -49,8 +48,7 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
         PreemptiblePct='The ratio of preemptible workers in Dataproc cluster',
         DownYARNMemAvailePct=
         'The percentage of remaining memory available to YARN to trigger scale'
-        ' down'
-    )
+        ' down')
     form_args = {
         'MinInstances': {
             'label': 'Min Number of Nodes'
@@ -75,20 +73,5 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
         },
         'DownYARNMemAvailePct': {
             'label': 'Scale In % YARNMemoryAvailable'
-        }
-    }
-
-    form_widget_args = {
-        'UpYARNMemAvailPct': {
-            'class': 'control-lable',
-            'style': "width: 50%"
-        },
-        'DownYARNMemAvailePct': {
-            'class': 'control-lable',
-            'style': "width: 50%"
-        },
-        'UpContainerPendingRatio': {
-            'class': 'control-lable',
-            'style': "width: 50%"
         }
     }

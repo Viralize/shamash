@@ -20,3 +20,6 @@ gcloud beta pubsub topics create shamash-scaling --project=$PROJECTID
 
 gcloud beta pubsub subscriptions create monitoring	--topic=shamash-monitoring  --topic-project=$PROJECTID --push-endpoint $APP/get_monitoring_data
 gcloud beta pubsub subscriptions create scaling	--topic=shamash-scaling --topic-project=$PROJECTID --push-endpoint $APP/scale
+
+
+gcloud app deploy app.yaml cron.yaml queue.yaml

@@ -8,8 +8,8 @@ import numpy as np
 from model import settings
 from monitoring import dataproc_monitoring, metrics
 
-time_series_history_in_minutes = 60
-
+TIME_SERIES_HISTORY_IN_MINUTES = 60
+NO_MORE_MEMORY_STEP = 4
 
 class Scale:
     """
@@ -32,6 +32,12 @@ class Scale:
         self.MinInstances = self.cluster_settings.MinInstances
         self.MaxInstances = self.cluster_settings.MaxInstances
         self.UpContainerPendingRatio = self.cluster_settings.UpContainerPendingRatio
+        if self.preemptible_pct != 100:
+            self.preemptibles_to_workers_ratio = self.preemptible_pct / (
+                100 - self.preemptible_pct)
+        else:
+            self.preemptibles_to_workers_ratio = -1
+
         try:
             self.cluster_status = self.dp.get_cluster_status()
             self.current_worker_nodes = int(self.dp.get_number_of_workers())
@@ -41,11 +47,6 @@ class Scale:
         except dataproc_monitoring.DataProcException as e:
             logging.error(e)
             raise e
-        if self.preemptible_pct != 100:
-            self.preemptibles_to_workers_ratio = self.preemptible_pct / (
-                100 - self.preemptible_pct)
-        else:
-            self.preemptibles_to_workers_ratio = -1
 
     def calc_how_many(self):
         """
@@ -63,7 +64,7 @@ class Scale:
 
         # no more memory lets get some lets at 4 nodes
         if self.dp.get_yarn_memory_available_percentage() == 0:
-            add_more = 4
+            add_more = NO_MORE_MEMORY_STEP
             scale_ratio = (float(self.cluster_settings.PreemptiblePct) / 100.0)
 
             self.new_workers = int(
@@ -194,7 +195,7 @@ class Scale:
             logging.debug("New workers {} New preemptibel {}".format(
                 self.new_workers, self.new_preemptible))
         else:
-            sl = self.calc_slope(time_series_history_in_minutes)
+            sl = self.calc_slope(TIME_SERIES_HISTORY_IN_MINUTES)
             if sl != 0:
                 slope = (1 / sl)
                 logging.info('Slope is {}'.format(slope))

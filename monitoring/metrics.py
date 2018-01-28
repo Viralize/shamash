@@ -62,11 +62,8 @@ class Metrics:
         ]
 
     def init_metrics(self):
-        """
-        Create all needed custom metrics
-        """
         for met in self.metrics:
-            if not self._custom_metric_exists(met):
+            if not self._custome_metric_exists(met):
                 self._create_custom_metric(met)
 
     def write_timeseries_value(self, custom_metric_type, data_point):
@@ -161,7 +158,7 @@ class Metrics:
 
     def _create_custom_metric(self, custom_metric_type):
         """Create custom metric descriptor"""
-        self._custom_metric_exists(custom_metric_type)
+        self._custome_metric_exists(custom_metric_type)
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
         metrics_descriptor = {
             "type":
@@ -191,7 +188,7 @@ class Metrics:
             logging.error(e)
         return
 
-    def _custom_metric_exists(self, custom_metric_type):
+    def _custome_metric_exists(self, custom_metric_type):
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
 
         @backoff.on_exception(

@@ -66,11 +66,13 @@ class DataProc:
         """Get status of the cluster.running updating etc"""
         try:
             cluster_data = self.__get_cluster_data()
-            status = cluster_data['status']['state']
+
         except (HttpError, KeyError) as e:
             logging.error(e)
             raise DataProcException(e)
-        return status
+        else:
+            status = cluster_data['status']['state']
+            return status
 
     def get_yarn_memory_available_percentage(self):
         """The percentage of remaining memory available to YARN
@@ -126,11 +128,12 @@ class DataProc:
         nodes = 0
         try:
             res = self.__get_cluster_data()
-            nodes = int(res['config']["workerConfig"]["numInstances"])
         except (HttpError, KeyError) as e:
             logging.error(e)
             raise DataProcException(e)
-        return nodes
+        else:
+            nodes = int(res['config']["workerConfig"]["numInstances"])
+            return nodes
 
     def get_yarn_containers_pending(self):
         """
@@ -140,27 +143,29 @@ class DataProc:
         pending = 0
         try:
             res = self.__get_cluster_data()
-            pending = int(
-                res["metrics"]["yarnMetrics"]["yarn-containers-pending"])
         except HttpError as e:
             logging.error(e)
             raise DataProcException(e)
         except KeyError as e:
             logging.info(e)
-        return pending
+        else:
+            pending = int(
+                res["metrics"]["yarnMetrics"]["yarn-containers-pending"])
+            return pending
 
     def get_number_of_preemptible_workers(self):
         """Get the number of 'real workers"""
         nodes = 0
         try:
             res = self.__get_cluster_data()
-            nodes = int(res['config']["secondaryWorkerConfig"]["numInstances"])
         except HttpError as e:
             logging.error(e)
             raise DataProcException(e)
         except KeyError as e:
             logging.info(e)
-        return nodes
+        else:
+            nodes = int(res['config']["secondaryWorkerConfig"]["numInstances"])
+            return nodes
 
     def patch_cluster(self, worker_nodes, preemptible_nodes):
         """Update number of nodes in a cluster"""
@@ -175,6 +180,7 @@ class DataProc:
                 updateMask='config.secondary_worker_config.num_instances',
                 body=body).execute()
             """Wait for cluster"""
+            # TODO make this better then just sleep
             while self.get_cluster_status().lower() != 'running':
                 time.sleep(1)
             body = json.loads('{"config":{"workerConfig":{"numInstances":%d}}}'

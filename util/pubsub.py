@@ -50,6 +50,61 @@ def publish(client, body, topic):
         raise PubSubException(e)
 
 
+def create_subscriptions(client, sub, topic):
+    project = 'projects/{}'.format(utils.get_project_id())
+    dest_sub = project + '/subscriptions/' + sub
+    dest_topic = project + '/topics/' + topic
+    body = {'topic': dest_topic}
+    @backoff.on_exception(
+        backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
+    def _do_get_request():
+        return client.projects().subscriptions().get(subscription=dest_sub).execute()
+
+    @backoff.on_exception(
+        backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
+    def _do_create_request():
+        client.projects().subscriptions().create(name=dest_sub, body=body).execute()
+
+    try:
+        _do_get_request()
+    except HttpError as e:
+        if e.resp.status == 404:
+            _do_create_request()
+        else:
+            logging.error(e)
+            raise PubSubException(e)
+
+
+def create_topic(client, topic):
+    """
+    Check if topix exists if not create it
+    :param client:
+    :param topic:
+    :return:
+    """
+    project = 'projects/{}'.format(utils.get_project_id())
+    dest_topic = project + '/topics/' + topic
+
+    @backoff.on_exception(
+        backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
+    def _do_get_request():
+        return client.projects().topics().get(topic=dest_topic).execute()
+
+    @backoff.on_exception(
+        backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
+    def _do_create_request():
+        client.projects().topics().create(name=dest_topic, body={}).execute()
+
+    try:
+        _do_get_request()
+    except HttpError as e:
+        if e.resp.status == 404:
+            _do_create_request()
+        else:
+            logging.error(e)
+            raise PubSubException(e)
+
+
 def fqrn(resource_type, project, resource):
     """Return a fully qualified resource name for Cloud Pub/Sub."""
     return "projects/{}/{}/{}".format(project, resource_type, resource)

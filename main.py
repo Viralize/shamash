@@ -35,9 +35,14 @@ def create_app():
         met.init_metrics()
 
     client = pubsub.get_pubsub_client()
+    pubsub.create_topic(client, 'shamash-monitoring')
+    pubsub.create_topic(client, 'shamash-scaling')
+    pubsub.create_subscriptions(client, 'monitoring', 'shamash-monitoring')
+    pubsub.create_subscriptions(client, 'scaling', 'shamash-scaling')
     pubsub.pull(client, 'monitoring',
                 "https://{}/get_monitoring_data".format(hostname))
     pubsub.pull(client, 'scaling', "https://{}/scale".format(hostname))
+    pubsub.pull(client, 'mysub', "https://{}/scale".format(hostname))
 
 
 create_app()
@@ -107,5 +112,4 @@ def server_error(e):
 
 
 if __name__ == "__main__":
-
     app.run(debug=True)

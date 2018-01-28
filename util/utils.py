@@ -57,3 +57,4 @@ def fatal_code(e):
     :return:
     """
     return e.resp.status < 500
+

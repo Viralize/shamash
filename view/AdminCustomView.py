@@ -2,8 +2,6 @@
 import flask_admin
 from flask_admin.contrib import appengine
 
-# TODO Add metrics one a new cluster is added
-
 
 class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
     """

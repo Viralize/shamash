@@ -4,7 +4,7 @@ from google.appengine.ext import ndb
 from google.auth import app_engine
 
 from util import utils
-
+from monitoring import metrics
 SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
 credentials = app_engine.Credentials(scopes=SCOPES)
 
@@ -39,6 +39,10 @@ class Settings(ndb.Model):
     PreemptiblePct = ndb.IntegerProperty(default=80)
     MaxInstances = ndb.IntegerProperty(default=10)
     MinInstances = ndb.IntegerProperty(default=2)
+
+    def _post_put_hook(self, future):
+        met = metrics.Metrics(self.Cluster)
+        met.init_metrics()
 
 
 def get_cluster_settings(cluster_name):

@@ -1,7 +1,8 @@
 # Work in Progress
 # FIXME
-Deploy run `./deploy.sh projetc-id`
-Local development run `dev_appserver.py --log_level=debug app.yaml
+Deploy run `./deploy.sh project-id`
+
+For local development run `dev_appserver.py --log_level=debug app.yaml
 ` you will need a config.json file
 
 `{

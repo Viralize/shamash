@@ -35,13 +35,13 @@ class DataProc:
     Class for interacting with a Dataproc cluster
     """
 
-    def __init__(self, cluster):
+    def __init__(self, cluster_name):
         self.dataproc = googleapiclient.discovery. \
             build('dataproc', 'v1',
                   credentials=credentials)
-        self.cluster = cluster
+        self.cluster_name = cluster_name
         self.project_id = utils.get_project_id()
-        s = settings.get_cluster_settings(cluster)
+        s = settings.get_cluster_settings(cluster_name)
         for st in s:
             self.cluster_settings = st
 
@@ -54,7 +54,7 @@ class DataProc:
             return self.dataproc.projects().regions().clusters().get(
                 projectId=utils.get_project_id(),
                 region=self.cluster_settings.Region,
-                clusterName=self.cluster).execute()
+                clusterName=self.cluster_name).execute()
 
         try:
             return _do_request()
@@ -167,7 +167,7 @@ class DataProc:
             self.dataproc.projects().regions().clusters().patch(
                 projectId=self.project_id,
                 region=self.cluster_settings.Region,
-                clusterName=self.cluster,
+                clusterName=self.cluster_name,
                 updateMask='config.secondary_worker_config.num_instances',
                 body=body).execute()
             """Wait for cluster"""
@@ -184,7 +184,7 @@ class DataProc:
             self.dataproc.projects().regions().clusters().patch(
                 projectId=self.project_id,
                 region=self.cluster_settings.Region,
-                clusterName=self.cluster,
+                clusterName=self.cluster_name,
                 updateMask='config.worker_config.num_instances',
                 body=body).execute()
 
@@ -193,28 +193,24 @@ class DataProc:
         except HttpError as e:
             raise DataProcException(e)
 
-
-def check_load():
-    """Get the current cluster metrics and publish them to pub/sub"""
-    clusters = settings.get_all_clusters_settings()
-    for cluster in clusters.iter():
-        dp = DataProc(cluster.Cluster)
+    def check_load(self):
+        """Get the current cluster metrics and publish them to pub/sub """
         try:
             monitor_data = {
                 "cluster":
-                cluster.Cluster,
+                self.cluster_name,
                 "yarn_memory_available_percentage":
-                int(dp.get_yarn_memory_available_percentage()),
+                int(self.get_yarn_memory_available_percentage()),
                 "container_pending_ratio":
-                float(dp.get_container_pending_ratio()),
+                float(self.get_container_pending_ratio()),
                 "number_of_nodes":
-                int(dp.get_number_of_nodes()),
+                int(self.get_number_of_nodes()),
                 "worker_nodes":
-                int(dp.get_number_of_workers()),
+                int(self.get_number_of_workers()),
                 'preemptible_nodes':
-                int(dp.get_number_of_preemptible_workers()),
+                int(self.get_number_of_preemptible_workers()),
                 'yarn_containers_pending':
-                int(dp.get_yarn_containers_pending())
+                int(self.get_yarn_containers_pending())
             }
         except DataProcException as e:
             logging.error(e)
@@ -224,10 +220,12 @@ def check_load():
                 'data': base64.b64encode(json.dumps(monitor_data))
             }]
         }
+        logging.debug("Monitor data for {} is |{}".format(
+            self.cluster_name, json.dumps(monitor_data)))
         pubsub_client = pubsub.get_pubsub_client()
         try:
             pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)
         except pubsub.PubSubException as e:
             logging.error(e)
             return 'Error', 500
-    return 'OK', 204
+        return 'OK', 204

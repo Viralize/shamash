@@ -21,3 +21,14 @@ Shamash is build on top of Google App Engine utilizing a serveries architecture.
 * Serverless operation
 * Support multiple clusters (each with his own configuration)
 * Works without any change to the cluster
+
+
+Flow
+
+* Every x minutes cron job calls /tasks/check_load which calls /do_monitor
+* For each cluster create a task that calls check_load()
+* check_load() publish data to pub /sub             pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)
+* /get_monitoring_data in invoked and calls should_scale
+* should_scale descide if we should scale. if yes trigger_scaling which put data into pubsub
+* /scale invokes calls do_scale
+* it call calc_scale which uses calc_slope

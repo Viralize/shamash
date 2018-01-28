@@ -2,15 +2,11 @@ runtime: python27
 api_version: 1
 threadsafe: true
 
-#application: forseti
-#service: forseti
 handlers:
 - url: /static
   static_dir: static
 - url: /.*
   script: main.app
-#- url: /tasks/.*
-#  check_load
 
 libraries:
 - name: ssl

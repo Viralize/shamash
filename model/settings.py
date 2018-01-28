@@ -21,7 +21,6 @@ def get_regions():
     response = request.execute()
     rg = []
     for region in response['items']:
-        # TODO: Change code below to process each `region` resource:
         rg.append(region['description'])
     rg.append('global')
     rg.sort()

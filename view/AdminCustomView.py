@@ -2,6 +2,7 @@ import flask_admin
 from flask_admin.contrib import appengine
 
 
+# TODO Add metrics one a new cluster is added
 class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
     column_list = [
         'Cluster', 'Region', 'PreemptiblePct', 'UpContainerPendingRatio',
@@ -13,7 +14,7 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
         MaxInstances='Max number of Nodes',
         Cluster='Cluster Name',
         Region='Cluster Region',
-        UpContainerPendingRatio='ContainerPendingRatio',
+        UpContainerPendingRatio='Container Pending Ratio',
         UpYARNMemAvailPct='Scale Out % YARNMemoryAvailable',
         PreemptiblePct='% Preemptible',
         DownYARNMemAvailePct='Scale In % YARNMemoryAvailable')
@@ -39,3 +40,45 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
         DownYARNMemAvailePct=
         'The percentage of remaining memory available to YARN to trigger scale down'
     )
+    form_args = {
+        'MinInstances': {
+            'label': 'Min Number of Nodes'
+        },
+        'MaxInstances': {
+            'label': 'Max number of Nodes'
+        },
+        'Cluster': {
+            'label': 'Cluster Name'
+        },
+        'Region': {
+            'label': 'Cluster Region'
+        },
+        'UpContainerPendingRatio': {
+            'label': 'Container Pending Ratio'
+        },
+        'UpYARNMemAvailPct': {
+            'label': 'Scale Out % YARNMemoryAvailable'
+        },
+        'PreemptiblePct': {
+            'label': '% Preemptible'
+        },
+        'DownYARNMemAvailePct': {
+            'label': 'Scale In % YARNMemoryAvailable'
+        }
+    }
+
+    form_widget_args = {
+        'UpYARNMemAvailPct': {
+            'class': 'control-lable',
+            'style': "width: 50%"
+        },
+        'DownYARNMemAvailePct': {
+            'class': 'control-lable',
+            'style': "width: 50%"
+        },
+        'UpContainerPendingRatio': {
+            'class': 'control-lable',
+            'style': "width: 50%"
+        }
+
+    }

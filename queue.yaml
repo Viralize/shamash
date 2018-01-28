@@ -1,0 +1,7 @@
+queue:
+- name: shamash
+  rate: 10/s
+  bucket_size: 50
+  retry_parameters:
+    min_backoff_seconds: 10
+    max_backoff_seconds: 200

@@ -3,10 +3,11 @@ import logging
 
 import flask_admin
 from flask import Flask, request, redirect
+from google.appengine.api import taskqueue
 
 from model import settings
 from monitoring import dataproc_monitoring, metrics
-from scaling import scaling
+from scaling import scaling, scaling_decisions
 from util import utils, pubsub
 from view.AdminCustomView import AdminCustomView
 
@@ -38,7 +39,6 @@ def create_app():
                 "https://{}/get_monitoring_data".format(hostname))
     pubsub.pull(client, 'scaling', "https://{}/scale".format(hostname))
 
-
 create_app()
 
 
@@ -57,7 +57,7 @@ def get_monitoring_data():
     After data is gathered from cluster into pub sub this function is invoked
     :return:
     """
-    return scaling.should_scale(request.json['message']['data'])
+    return scaling_decisions.should_scale(request.json['message']['data'])
 
 
 @app.route('/scale', methods=['POST'])
@@ -66,13 +66,36 @@ def scale():
     Called when decide  to scale is made
     :return:
     """
-    return scaling.do_scale(request.json['message']['data'])
+    scaler = scaling.Scale(request.json['message']['data'])
+    return scaler.do_scale()
 
 
 @app.route('/tasks/check_load')
 def check_load():
-    """Entry point for cron task that check cluster stats"""
-    return dataproc_monitoring.check_load()
+    """Entry point for cron task that launches a task for each cluster
+    check cluster stats"""
+    clusters = settings.get_all_clusters_settings()
+    for cluster in clusters.iter():
+        task = taskqueue.add(
+            queue_name="shamash",
+            url="/do_monitor",
+            method='GET',
+            params={
+                'cluster_name': cluster.Cluster
+            })
+        logging.debug('Task {} enqueued, ETA {}.'.format(task.name, task.eta))
+
+    return 'ok', 200
+
+
+@app.route('/do_monitor', methods=['GET'])
+def do_monitor():
+    """
+    called by task to do the actual check
+    :return:
+    """
+    dp = dataproc_monitoring.DataProc(request.args.get('cluster_name'))
+    return dp.check_load()
 
 
 @app.errorhandler(500)
@@ -83,4 +106,5 @@ def server_error(e):
 
 
 if __name__ == "__main__":
+
     app.run(debug=True)

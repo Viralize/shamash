@@ -27,6 +27,10 @@ def _get_project_id():
 
 
 def get_project_id():
+    """
+    returns the real or local project id
+    :return: project_id
+    """
     if detect_gae():
         project = app_identity.get_application_id()
     else:
@@ -35,6 +39,10 @@ def get_project_id():
 
 
 def get_host_name():
+    """
+    returns the real or local hostname
+    :return: hostname
+    """
     if detect_gae():
         hostname = "{}.appspot.com".format(app_identity.get_application_id())
     else:
@@ -43,4 +51,9 @@ def get_host_name():
 
 
 def fatal_code(e):
+    """
+    in case of a 500+ errcode do backoff
+    :param e: execption
+    :return:
+    """
     return e.resp.status < 500

@@ -11,7 +11,10 @@ from monitoring import dataproc_monitoring, metrics
 time_series_history_in_minutes = 60
 
 
-class Scale():
+class Scale:
+    """
+    Class for all scaling operations
+    """
 
     def __init__(self, payload):
         data = json.loads(base64.b64decode(payload))
@@ -45,6 +48,10 @@ class Scale():
             self.preemptibles_to_workers_ratio = -1
 
     def calc_how_many(self):
+        """
+        calculate how  many new nodes of each type we need
+        :return:
+        """
         # No allocated memory so we don't need any workers above the
         # bare minimum
         if self.scale_to != -1:
@@ -75,6 +82,10 @@ class Scale():
         self.calc_scale()
 
     def do_scale(self):
+        """
+        calculate and actually scale the cluster
+        :return:
+        """
         logging.debug("Workers {} Preemptibel {}".format(
             self.current_worker_nodes, self.current_preemptible_nodes))
         self.calc_how_many()
@@ -113,7 +124,7 @@ class Scale():
     def calc_slope(self, minuets):
         """
         calculate the slope of available memory change
-        :param minuets, cluster:
+        :param: minuets how long to go back in time
         """
 
         met = metrics.Metrics(self.cluster_name)
@@ -131,7 +142,7 @@ class Scale():
             slope, intercept = np.polyfit(x, y, 1)
             logging.debug("Slope is {}".format(slope))
         except np.RankWarning:
-            # not enought data so add remove by 1
+            # not enough data so add remove by 1
             if self.scaling_direction == 'up':
                 slope = 1
             else:
@@ -166,8 +177,7 @@ class Scale():
     def calc_scale(self):
         """
         How many nodes to add
-        :param current_worker_nodes, current_preemptible_nodes,
-                   preemptiblepct, cluster_name:
+        :param
         :return:
         """
 

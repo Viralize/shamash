@@ -1,4 +1,4 @@
-""""Settings"""
+""""Settings Class and utils"""
 import googleapiclient.discovery
 from google.appengine.ext import ndb
 from google.auth import app_engine

@@ -39,6 +39,7 @@ def create_app():
                 "https://{}/get_monitoring_data".format(hostname))
     pubsub.pull(client, 'scaling', "https://{}/scale".format(hostname))
 
+
 create_app()
 
 

@@ -1,9 +1,15 @@
+"""Admin view """
 import flask_admin
 from flask_admin.contrib import appengine
 
 
 # TODO Add metrics one a new cluster is added
+
+
 class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
+    """
+    Admin View
+    """
     column_list = [
         'Cluster', 'Region', 'PreemptiblePct', 'UpContainerPendingRatio',
         'DownYARNMemAvailePct', 'UpYARNMemAvailPct', 'MaxInstances',
@@ -27,18 +33,23 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
     create_template = 'create.html',
     column_descriptions = dict(
         MinInstances=
-        'The least number of workers the cluster will contain, even if the target is not met',
+        'The least number of workers the cluster will contain, even if the'
+        ' target is not met',
         MaxInstances=
-        'The largest number of workers allowed, even if the target is exceeded',
+        'The largest number of workers allowed, even if the target is'
+        ' exceeded',
         Cluster='Google Dataproc Cluster Name',
         Region='Cluster Region',
         UpContainerPendingRatio=
-        'The ratio of pending containers allocated to trigger scale out event of the cluster',
+        'The ratio of pending containers allocated to trigger scale out event'
+        ' of the cluster',
         UpYARNMemAvailPct=
-        'The percentage of remaining memory available to YARN to trigger scale out',
+        'The percentage of remaining memory available to YARN to trigger'
+        ' scale out',
         PreemptiblePct='The ratio of preemptible workers in Dataproc cluster',
         DownYARNMemAvailePct=
-        'The percentage of remaining memory available to YARN to trigger scale down'
+        'The percentage of remaining memory available to YARN to trigger scale'
+        ' down'
     )
     form_args = {
         'MinInstances': {
@@ -80,5 +91,4 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
             'class': 'control-lable',
             'style': "width: 50%"
         }
-
     }

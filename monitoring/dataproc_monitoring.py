@@ -84,10 +84,9 @@ class DataProc:
             if int(res["metrics"]["yarnMetrics"][
                     "yarn-memory-mb-available"]) == 0:
                 return 0
-            return int(
-                res["metrics"]["yarnMetrics"]["yarn-memory-mb-allocated"]) / \
-                   int(res["metrics"]["yarnMetrics"][
-                           "yarn-memory-mb-available"])
+            return int(res["metrics"][
+                "yarnMetrics"]["yarn-memory-mb-allocated"]) / int(
+                    res["metrics"]["yarnMetrics"]["yarn-memory-mb-available"])
         except (HttpError, KeyError) as e:
             logging.error(e)
             raise DataProcException(e)
@@ -95,8 +94,9 @@ class DataProc:
     def get_container_pending_ratio(self):
         """The ratio of pending containers to containers allocated
         (ContainerPendingRatio = ContainerPending / ContainerAllocated).
-        If ContainerAllocated = 0, then ContainerPendingRatio = ContainerPending.
-         The value of ContainerPendingRatio represents a number, not a percentage.
+        If ContainerAllocated = 0, then ContainerPendingRatio =
+        ContainerPending. The value of ContainerPendingRatio represents
+        a number, not a percentage.
         """
         try:
             res = self.__get_cluster_data()
@@ -123,8 +123,8 @@ class DataProc:
 
     def get_number_of_workers(self):
         """Get the number of 'real workers"""
+        nodes = 0
         try:
-            nodes = 0
             res = self.__get_cluster_data()
             nodes = int(res['config']["workerConfig"]["numInstances"])
         except (HttpError, KeyError) as e:
@@ -133,6 +133,10 @@ class DataProc:
         return nodes
 
     def get_yarn_containers_pending(self):
+        """
+        Get the number of pending containers.
+        :return:
+        """
         pending = 0
         try:
             res = self.__get_cluster_data()
@@ -147,8 +151,8 @@ class DataProc:
 
     def get_number_of_preemptible_workers(self):
         """Get the number of 'real workers"""
+        nodes = 0
         try:
-            nodes = 0
             res = self.__get_cluster_data()
             nodes = int(res['config']["secondaryWorkerConfig"]["numInstances"])
         except HttpError as e:

@@ -25,7 +25,7 @@ def trigger_scaling(direction):
 
 def should_scale(payload):
     """
-    Make a descion to scale or not
+    Make a decision to scale or not
     :param payload:
     :return:
     """

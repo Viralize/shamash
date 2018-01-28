@@ -169,25 +169,15 @@ class DataProc:
 
     def patch_cluster(self, worker_nodes, preemptible_nodes):
         """Update number of nodes in a cluster"""
-        try:
-            body = json.loads(
-                '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' %
-                preemptible_nodes)
-            self.dataproc.projects().regions().clusters().patch(
-                projectId=self.project_id,
-                region=self.cluster_settings.Region,
-                clusterName=self.cluster_name,
-                updateMask='config.secondary_worker_config.num_instances',
-                body=body).execute()
-            """Wait for cluster"""
-            # TODO make this better then just sleep
-            while self.get_cluster_status().lower() != 'running':
-                time.sleep(1)
-            body = json.loads('{"config":{"workerConfig":{"numInstances":%d}}}'
-                              % worker_nodes)
-        except HttpError as e:
-            raise DataProcException(e)
 
+        """Wait for cluster"""
+        @backoff.on_predicate(backoff.expo)
+        def _is_cluster_running():
+            return self.get_cluster_status().lower() == 'running'
+        _is_cluster_running()
+
+        body = json.loads('{"config":{"workerConfig":{"numInstances":%d}}}'
+                          % worker_nodes)
         @backoff.on_exception(
             backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
         def _do_request():

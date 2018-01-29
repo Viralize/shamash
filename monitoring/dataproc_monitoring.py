@@ -41,8 +41,11 @@ class DataProc:
         self.cluster_name = cluster_name
         self.project_id = utils.get_project_id()
         s = settings.get_cluster_settings(cluster_name)
-        for st in s:
-            self.cluster_settings = st
+        if s.count(1) == 1:
+            for st in s:
+                self.cluster_settings = st
+        else:
+            raise DataProcException("Cluster not found!")
 
     def __get_cluster_data(self):
         """Get a json with cluster data/status."""

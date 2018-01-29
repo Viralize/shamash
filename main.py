@@ -72,7 +72,11 @@ def scale():
     Called when decide  to scale is made
     :return:
     """
-    scaler = scaling.Scale(request.json['message']['data'])
+    try:
+        scaler = scaling.Scale(request.json['message']['data'])
+    except scaling.ScalingException as e:
+        logging.info(e)
+        return 'error', 500
     return scaler.do_scale()
 
 

@@ -10,4 +10,4 @@ gcloud config set project $PROJECTID
 
 
 
-gcloud app deploy app.yaml cron.yaml queue.yaml
+gcloud app deploy -q app.yaml cron.yaml queue.yaml

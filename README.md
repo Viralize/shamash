@@ -1,14 +1,3 @@
-# Work in Progress
-# FIXME
-Deploy run `./deploy.sh project-id`
-
-For local development run `dev_appserver.py --log_level=debug app.yaml
-` you will need a config.json file
-
-`{
-  "project": "project-id"
-}`
-# END OF FIXME
 # Shamash - Autoscaling for Dataproc
 Shamash is a service for autoscaling Cloud DataProc on Google Cloude Platform(GCP).
 treams
@@ -33,13 +22,45 @@ Shamash is build on top of Google App Engine utilizing a serveries architecture.
 * Support multiple clusters (each with his own configuration)
 * Works without any change to the cluster
 
+## Instalation
+Shamash requires both Google Compute Engine, Google Cloud Pub/Sub, Dataproc API and Stackdriver APIs to be enabled in order to operate properly.
 
+**To enable an API for your project:**
+
+1. Go to the [Cloud Platform Console](https://console.cloud.google.com/).
+2. From the projects list, select a project or create a new one.
+3. If the APIs & services page isn't already open, open the console left side menu and select APIs & services, and then select Library.
+4. Click the API you want to enable. ...
+5. Click ENABLE.
+
+##### Install dependencies
+
+`pip install -r requirements.txt -t lib`
+
+##### Deploy
+`./deploy.sh project-id`
+
+
+## Architecture
+![](Shamash_arch.png)
 Flow
 
-* Every x minutes cron job calls /tasks/check_load which calls /do_monitor
-* For each cluster create a task that calls check_load()
-* check_load() publish data to pub /sub             pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)
-* /get_monitoring_data in invoked and calls should_scale
-* should_scale descide if we should scale. if yes trigger_scaling which put data into pubsub
-* /scale invokes calls do_scale
-* it call calc_scale which uses calc_slope
+* Every 5 minutes a cron job calls `/tasks/check_load` which create a task per clusterin the task queue.
+* Each task is requesting `/do_monitor` with the cluster name as a paramter.
+* `/do_monitor` calls `check_load()`
+* `check_load()` get the data from the cluster and publish it to pub/sub`pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)`
+* `/get_monitoring_data` in invoked when there is new message in the monitoring topic and calls should_scale
+* should_scale descide if we should scale. if yes trigger_scaling which put data into pub/sub scaling topic
+* `/scale` invokes, gets the message from pub/sub and  calls `do_scale`
+* Once the calculation are done the cluster is ptached with a new number of nodes.
+
+### Local Devlopment
+For local development run:
+
+ `dev_appserver.py --log_level=debug app.yaml`
+
+  you will need a local config.json file in the follwoing structure
+
+`{
+"project": "project-id"
+}`

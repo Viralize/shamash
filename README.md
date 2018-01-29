@@ -45,21 +45,21 @@ Shamash requires both Google Compute Engine, Google Cloud Pub/Sub, Dataproc API 
 ![](Shamash_arch.png)
 Flow
 
-* Every 5 minutes a cron job calls `/tasks/check_load` which create a task per clusterin the task queue.
-* Each task is requesting `/do_monitor` with the cluster name as a paramter.
+* Every 5 minutes a cron job calls `/tasks/check_load` which create a task per cluster in the task queue.
+* Each task is requesting `/do_monitor` with the cluster name as a parameter.
 * `/do_monitor` calls `check_load()`
-* `check_load()` get the data from the cluster and publish it to pub/sub`pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)`
-* `/get_monitoring_data` in invoked when there is new message in the monitoring topic and calls should_scale
-* should_scale descide if we should scale. if yes trigger_scaling which put data into pub/sub scaling topic
+* `check_load()` get the data from the cluster and publishes it to pub/sub`pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)`
+* `/get_monitoring_data` is invoked when there is a new message in the monitoring topic and calls /should_scale
+* should_scale descide if the cluster has to be rescaled. If yes, trigger_scaling which put data into pub/sub scaling topic
 * `/scale` invokes, gets the message from pub/sub and  calls `do_scale`
-* Once the calculation are done the cluster is ptached with a new number of nodes.
+* Once the calculations are done the cluster is patches with a new number of nodes.
 
-### Local Devlopment
+### Local Development
 For local development run:
 
  `dev_appserver.py --log_level=debug app.yaml`
 
-  you will need a local config.json file in the follwoing structure
+  you will need a local config.json file in the following structure
 
 `{
 "project": "project-id"

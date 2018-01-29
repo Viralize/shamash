@@ -2,7 +2,6 @@
 import base64
 import json
 import logging
-import time
 
 import backoff
 import googleapiclient.discovery
@@ -81,14 +80,14 @@ class DataProc:
         try:
             res = self.__get_cluster_data()
             if int(res["metrics"]["yarnMetrics"][
-                    "yarn-memory-mb-allocated"]) == 0:
+                       "yarn-memory-mb-allocated"]) == 0:
                 return -1
             if int(res["metrics"]["yarnMetrics"][
-                    "yarn-memory-mb-available"]) == 0:
+                       "yarn-memory-mb-available"]) == 0:
                 return 0
             return int(res["metrics"][
-                "yarnMetrics"]["yarn-memory-mb-allocated"]) / int(
-                    res["metrics"]["yarnMetrics"]["yarn-memory-mb-available"])
+                           "yarnMetrics"]["yarn-memory-mb-allocated"]) / int(
+                res["metrics"]["yarnMetrics"]["yarn-memory-mb-available"])
         except (HttpError, KeyError) as e:
             logging.error(e)
             raise DataProcException(e)
@@ -155,6 +154,8 @@ class DataProc:
 
     def get_number_of_preemptible_workers(self):
         """Get the number of 'real workers"""
+        if self.cluster_settings.PreemptiblePct == 0:
+            return 0
         nodes = 0
         try:
             res = self.__get_cluster_data()
@@ -171,13 +172,16 @@ class DataProc:
         """Update number of nodes in a cluster"""
 
         """Wait for cluster"""
+
         @backoff.on_predicate(backoff.expo)
         def _is_cluster_running():
             return self.get_cluster_status().lower() == 'running'
+
         _is_cluster_running()
 
         body = json.loads('{"config":{"workerConfig":{"numInstances":%d}}}'
                           % worker_nodes)
+
         @backoff.on_exception(
             backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
         def _do_request():
@@ -198,20 +202,21 @@ class DataProc:
         try:
             monitor_data = {
                 "cluster":
-                self.cluster_name,
+                    self.cluster_name,
                 "yarn_memory_available_percentage":
-                int(self.get_yarn_memory_available_percentage()),
+                    int(self.get_yarn_memory_available_percentage()),
                 "container_pending_ratio":
-                float(self.get_container_pending_ratio()),
+                    float(self.get_container_pending_ratio()),
                 "number_of_nodes":
-                int(self.get_number_of_nodes()),
+                    int(self.get_number_of_nodes()),
                 "worker_nodes":
-                int(self.get_number_of_workers()),
-                'preemptible_nodes':
-                int(self.get_number_of_preemptible_workers()),
+                    int(self.get_number_of_workers()),
                 'yarn_containers_pending':
-                int(self.get_yarn_containers_pending())
+                    int(self.get_yarn_containers_pending())
             }
+            if self.cluster_settings.PreemptiblePct != 0:
+                monitor_data['preemptible_nodes'] = int(
+                    self.get_number_of_preemptible_workers())
         except DataProcException as e:
             logging.error(e)
             return 'Error', 500

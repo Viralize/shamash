@@ -1,8 +1,9 @@
 """Entry point for Shamash"""
 import logging
+import os
 
 import flask_admin
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, send_from_directory
 from google.appengine.api import taskqueue
 
 from model import settings
@@ -107,6 +108,10 @@ def do_monitor():
     dp = dataproc_monitoring.DataProc(request.args.get('cluster_name'))
     return dp.check_load()
 
+
+@app.route('/favicon.ico')
+def favicon():
+    return redirect('/static/favicon.ico', 302)
 
 @app.errorhandler(500)
 def server_error(e):

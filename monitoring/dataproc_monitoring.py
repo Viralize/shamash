@@ -156,6 +156,8 @@ class DataProc:
         """Get the number of 'real workers"""
         if self.cluster_settings.PreemptiblePct == 0:
             return 0
+        if self.get_number_of_workers() - self.get_number_of_nodes() == 0:
+            return 0
         nodes = 0
         try:
             res = self.__get_cluster_data()

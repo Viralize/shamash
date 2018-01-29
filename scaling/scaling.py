@@ -209,4 +209,4 @@ class Scale:
         logging.info("Scaling to workers   {} preemptibel {} ".format(
             self.new_workers, self.new_preemptible))
         self.new_preemptible = int(self.new_preemptible)
-        self.new_workers = input(self.new_workers)
+        self.new_workers = int(self.new_workers)

@@ -5,6 +5,7 @@ treams
 [Shamash](https://www.wikiwand.com/en/Shamash) was the god of justice in Babylonia and Assyria, just like
 the Shamash autoscaler whose job is to continuously maintain a tradeoff between costs and
 performance.
+
 ![](static/Shamash.png)
 
 ## Background

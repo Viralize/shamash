@@ -11,6 +11,19 @@ from monitoring import dataproc_monitoring, metrics
 TIME_SERIES_HISTORY_IN_MINUTES = 60
 NO_MORE_MEMORY_STEP = 4
 
+
+class ScalingException(Exception):
+    """
+    Exception class for DataProc functions
+    """
+
+    def __init__(self, value):
+        self.parameter = value
+
+    def __str__(self):
+        return repr(self.parameter)
+
+
 class Scale:
     """
     Class for all scaling operations
@@ -19,8 +32,11 @@ class Scale:
     def __init__(self, payload):
         data = json.loads(base64.b64decode(payload))
         s = settings.get_cluster_settings(data['cluster'])
-        for st in s:
-            self.cluster_settings = st
+        if s.count(1) == 1:
+            for st in s:
+                self.cluster_settings = st
+        else:
+            raise ScalingException("Cluster not found!")
         self.new_workers = 0
         self.new_preemptible = 0
         self.dp = dataproc_monitoring.DataProc(data['cluster'])
@@ -34,7 +50,7 @@ class Scale:
         self.UpContainerPendingRatio = self.cluster_settings.UpContainerPendingRatio
         if self.preemptible_pct != 100:
             self.preemptibles_to_workers_ratio = self.preemptible_pct / (
-                100 - self.preemptible_pct)
+                    100 - self.preemptible_pct)
         else:
             self.preemptibles_to_workers_ratio = -1
 
@@ -69,10 +85,12 @@ class Scale:
 
             self.new_workers = int(
                 round((
-                    (1 - scale_ratio) * add_more) + self.current_worker_nodes))
+                              (
+                                          1 - scale_ratio) * add_more) + self.current_worker_nodes))
             self.new_preemptible = int(
                 round((
-                    (scale_ratio * add_more) + self.current_preemptible_nodes)))
+                        (
+                                    scale_ratio * add_more) + self.current_preemptible_nodes)))
 
             if (self.new_preemptible + self.new_workers) > self.MaxInstances:
                 self.calc_max_nodes_combination()
@@ -163,7 +181,7 @@ class Scale:
         """
         if self.preemptibles_to_workers_ratio != -1:
             new_workers = self.MaxInstances / (
-                self.preemptibles_to_workers_ratio + 1)
+                    self.preemptibles_to_workers_ratio + 1)
             new_preemptibel = self.MaxInstances - new_workers
             logging.debug("New workers {} New preemptibel {}".format(
                 self.new_workers, self.new_preemptible))
@@ -184,14 +202,15 @@ class Scale:
 
         # pending containers are waiting....
         if self.containerpendingratio != -1:
-            self.current_preemptible_nodes = max(self.current_preemptible_nodes,
-                                                 1)
+            self.current_preemptible_nodes = max(
+                self.current_preemptible_nodes,
+                1)
             self.new_workers = self.current_worker_nodes + (
-                1 - self.preemptible_pct) * self.current_worker_nodes * (
-                    1 / self.preemptible_pct)
+                    1 - self.preemptible_pct) * self.current_worker_nodes * (
+                                       1 / self.preemptible_pct)
             self.new_preemptible = self.current_preemptible_nodes + (
-                self.preemptible_pct / 100) * self.current_preemptible_nodes * (
-                    1 / self.containerpendingratio)
+                    self.preemptible_pct / 100) * self.current_preemptible_nodes * (
+                                           1 / self.containerpendingratio)
             logging.debug("New workers {} New preemptibel {}".format(
                 self.new_workers, self.new_preemptible))
         else:
@@ -201,9 +220,9 @@ class Scale:
                 logging.info('Slope is {}'.format(slope))
                 if slope != 0:
                     self.new_workers = self.current_worker_nodes + slope * (
-                        1 - (self.preemptible_pct / 100))
+                            1 - (self.preemptible_pct / 100))
                     self.new_preemptible = self.current_preemptible_nodes + slope * (
-                        self.preemptible_pct / 100)
+                            self.preemptible_pct / 100)
                     logging.debug("New workers {} New preemptibel {}".format(
                         self.new_workers, self.new_preemptible))
         logging.info("Scaling to workers   {} preemptibel {} ".format(

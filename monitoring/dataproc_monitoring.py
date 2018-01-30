@@ -49,6 +49,7 @@ class DataProc:
 
     def __get_cluster_data(self):
         """Get a json with cluster data/status."""
+
         @backoff.on_exception(
             backoff.expo, HttpError, max_tries=8, giveup=utils.fatal_code)
         def _do_request():
@@ -88,19 +89,20 @@ class DataProc:
 
     def get_yarn_memory_available_percentage(self):
         """The percentage of remaining memory available to YARN
-        yarn-memory-mb-allocated/yarn-memory-mb-available
+        yarn-memory-mb-available + yarn-memory-mb-allocated = Total cluster
+         memory.
+         yarn_memory_mb_available / Total Cluster Memory
+
         """
         try:
             res = self.__get_cluster_data()
-            if int(res["metrics"]["yarnMetrics"][
-                    "yarn-memory-mb-allocated"]) == 0:
-                return -1
-            if int(res["metrics"]["yarnMetrics"][
-                    "yarn-memory-mb-available"]) == 0:
-                return 0
-            return int(res["metrics"][
-                "yarnMetrics"]["yarn-memory-mb-allocated"]) / int(
-                    res["metrics"]["yarnMetrics"]["yarn-memory-mb-available"])
+            yarn_memory_mb_allocated = int(res["metrics"]["yarnMetrics"][
+                "yarn-memory-mb-allocated"])
+            yarn_memory_mb_available = int(res["metrics"]["yarnMetrics"][
+                                               "yarn-memory-mb-available"])
+            total_memory = yarn_memory_mb_allocated + yarn_memory_mb_available
+
+            return int(yarn_memory_mb_available) / int(total_memory)
         except (HttpError, KeyError) as e:
             logging.error(res)
             logging.error(e)
@@ -115,12 +117,16 @@ class DataProc:
         """
         try:
             res = self.__get_cluster_data()
-            yarn_container_allocated = int(
-                res["metrics"]["yarnMetrics"]["yarn-containers-allocated"])
+
             yarn_containers_pending = int(
                 res["metrics"]["yarnMetrics"]["yarn-containers-pending"])
+
+            yarn_container_allocated = int(
+                res["metrics"]["yarnMetrics"]["yarn-containers-allocated"])
+
             if yarn_container_allocated == 0:
                 return yarn_containers_pending
+
             return yarn_containers_pending / yarn_container_allocated
         except (HttpError, KeyError) as e:
             logging.error(res)
@@ -218,8 +224,7 @@ class DataProc:
                 _do_request(update_mask)
             except HttpError as e:
                 raise DataProcException(e)
-        if self.get_number_of_preemptible_workers(
-        ) == preemptible_nodes:
+        if self.get_number_of_preemptible_workers() == preemptible_nodes:
             return
         body = json.loads(
             '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' %
@@ -238,7 +243,7 @@ class DataProc:
                 "cluster":
                 self.cluster_name,
                 "yarn_memory_available_percentage":
-                int(self.get_yarn_memory_available_percentage()),
+                float(self.get_yarn_memory_available_percentage()),
                 "container_pending_ratio":
                 float(self.get_container_pending_ratio()),
                 "number_of_nodes":

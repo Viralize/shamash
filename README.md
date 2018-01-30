@@ -54,9 +54,13 @@ Shamash requires both Google Compute Engine, Google Cloud Pub/Sub, Dataproc API 
 * Cluster — Google Dataproc Cluster Name
 * Region — Cluster Region
 * PreemptiblePct — The ratio of preemptible workers in Dataproc cluster
-* UpContainerPendingRatio — The ratio of pending containers allocated to trigger scale out event of the cluster
+* ContainerPendingRatio — The ratio of pending containers allocated to trigger scale out event of the cluster. (UpContainerPendingRatio = yarn-containers-pending / yarn-containers-allocated). If yarn-containers-allocated = 0, then ContainerPendingRatio = yarn-containers-pending.
 * UpYARNMemAvailPct — The percentage of remaining memory available to YARN to trigger
 * DownYARNMemAvailePct — The percentage of remaining memory available to YARN to trigger scale down
+
+  YARNMemAvailePct is calculated using  the following formula `yarn-memory-mb-available + yarn-memory-mb-allocated = Total cluster memory`.
+`YARNMemAvailePct  = yarn_memory_mb_available / Total Cluster Memory`
+
 * MinInstances - The least number of workers the cluster will contain, even if the target is not met
 * MaxInstances — The largest number of workers allowed, even if the target is exceeded
 

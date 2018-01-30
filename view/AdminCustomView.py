@@ -24,10 +24,6 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
         UpYARNMemAvailPct='Scale Out % YARNMemoryAvailable',
         PreemptiblePct='% Preemptible',
         DownYARNMemAvailePct='Scale In % YARNMemoryAvailable')
-    column_editable_list = [
-        'MinInstances', 'MaxInstances', 'UpContainerPendingRatio',
-        'UpYARNMemAvailPct', 'PreemptiblePct', 'DownYARNMemAvailePct'
-    ]
     list_template = 'list.html',
     edit_template = 'edit.html',
     create_template = 'create.html',
@@ -60,7 +56,7 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
             'Max number of Nodes',
             'validators': [
                 validators.NumberRange(2),
-                GreaterEqualThan(fieldname='Min Number of Nodes')
+                GreaterEqualThan(fieldname='MinInstances')
             ]
         },
         'Cluster': {

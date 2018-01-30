@@ -1,6 +1,9 @@
 """Admin view """
 import flask_admin
 from flask_admin.contrib import appengine
+from wtforms import validators, Form
+
+from validators import GreaterEqualThan
 
 
 class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
@@ -49,10 +52,16 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
         ' down')
     form_args = {
         'MinInstances': {
-            'label': 'Min Number of Nodes'
+            'label': 'Min Number of Nodes',
+            'validators': [validators.NumberRange(2)]
         },
         'MaxInstances': {
-            'label': 'Max number of Nodes'
+            'label':
+            'Max number of Nodes',
+            'validators': [
+                validators.NumberRange(2),
+                GreaterEqualThan(fieldname='Min Number of Nodes')
+            ]
         },
         'Cluster': {
             'label': 'Cluster Name'
@@ -61,15 +70,19 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
             'label': 'Cluster Region'
         },
         'UpContainerPendingRatio': {
-            'label': 'Container Pending Ratio'
+            'label': 'Container Pending Ratio',
+            'validators': [validators.NumberRange(0)]
         },
         'UpYARNMemAvailPct': {
-            'label': 'Scale Out % YARNMemoryAvailable'
+            'label': 'Scale Out % YARNMemoryAvailable',
+            'validators': [validators.NumberRange(0, 100)]
         },
         'PreemptiblePct': {
-            'label': '% Preemptible'
+            'label': '% Preemptible',
+            'validators': [validators.NumberRange(0, 100)]
         },
         'DownYARNMemAvailePct': {
-            'label': 'Scale In % YARNMemoryAvailable'
+            'label': 'Scale In % YARNMemoryAvailable',
+            'validators': [validators.NumberRange(0, 100)]
         }
     }

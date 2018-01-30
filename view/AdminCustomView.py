@@ -3,7 +3,7 @@ import flask_admin
 from flask_admin.contrib import appengine
 from wtforms import validators, Form
 
-from validators import GreaterEqualThan
+from validators import GreaterEqualThan, SmallerEqualThan
 
 
 class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
@@ -66,8 +66,12 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
             'label': 'Cluster Region'
         },
         'UpContainerPendingRatio': {
-            'label': 'Container Pending Ratio',
-            'validators': [validators.NumberRange(0)]
+            'label':
+            'Container Pending Ratio',
+            'validators': [
+                validators.NumberRange(0),
+                SmallerEqualThan(fieldname='DownYARNMemAvailePct')
+            ]
         },
         'UpYARNMemAvailPct': {
             'label': 'Scale Out % YARNMemoryAvailable',
@@ -78,7 +82,11 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
             'validators': [validators.NumberRange(0, 100)]
         },
         'DownYARNMemAvailePct': {
-            'label': 'Scale In % YARNMemoryAvailable',
-            'validators': [validators.NumberRange(0, 100)]
+            'label':
+            'Scale In % YARNMemoryAvailable',
+            'validators': [
+                validators.NumberRange(0, 100),
+                GreaterEqualThan(fieldname='UpYARNMemAvailPct')
+            ]
         }
     }

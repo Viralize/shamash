@@ -45,6 +45,17 @@ Shamash requires both Google Compute Engine, Google Cloud Pub/Sub, Dataproc API 
 ##### Deploy
 `./deploy.sh project-id`
 
+## Configuration
+![](Settings_-_Admin.png)
+
+* Cluster — Google Dataproc Cluster Name
+* Region — Cluster Region
+* PreemptiblePct — The ratio of preemptible workers in Dataproc cluster
+* UpContainerPendingRatio — The ratio of pending containers allocated to trigger scale out event of the cluster
+* UpYARNMemAvailPct — The percentage of remaining memory available to YARN to trigger
+* DownYARNMemAvailePct — The percentage of remaining memory available to YARN to trigger scale down
+* MinInstances - The least number of workers the cluster will contain, even if the target is not met
+* MaxInstances — The largest number of workers allowed, even if the target is exceeded
 
 ## Architecture
 ![](Shamash_arch.png)

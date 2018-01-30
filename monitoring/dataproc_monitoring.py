@@ -70,6 +70,7 @@ class DataProc:
             cluster_data = self.__get_cluster_data()
 
         except (HttpError, KeyError) as e:
+            logging.error(cluster_data)
             logging.error(e)
             raise DataProcException(e)
         else:
@@ -92,6 +93,7 @@ class DataProc:
                 "yarnMetrics"]["yarn-memory-mb-allocated"]) / int(
                     res["metrics"]["yarnMetrics"]["yarn-memory-mb-available"])
         except (HttpError, KeyError) as e:
+            logging.error(res)
             logging.error(e)
             raise DataProcException(e)
 
@@ -112,6 +114,7 @@ class DataProc:
                 return yarn_containers_pending
             return yarn_containers_pending / yarn_container_allocated
         except (HttpError, KeyError) as e:
+            logging.error(res)
             logging.error(e)
             raise DataProcException(e)
 
@@ -121,6 +124,7 @@ class DataProc:
             res = self.__get_cluster_data()
             nodes = int(res["metrics"]["yarnMetrics"]["yarn-nodes-active"])
         except (HttpError, KeyError) as e:
+            logging.error(res)
             logging.error(e)
             raise DataProcException(e)
         return nodes
@@ -131,6 +135,7 @@ class DataProc:
         try:
             res = self.__get_cluster_data()
         except (HttpError, KeyError) as e:
+            logging.error(res)
             logging.error(e)
             raise DataProcException(e)
         else:
@@ -149,6 +154,7 @@ class DataProc:
             logging.error(e)
             raise DataProcException(e)
         except KeyError as e:
+            logging.error(res)
             logging.info(e)
         else:
             pending = int(
@@ -164,14 +170,14 @@ class DataProc:
         nodes = 0
         try:
             res = self.__get_cluster_data()
+            nodes = int(res['config']["secondaryWorkerConfig"]["numInstances"])
         except HttpError as e:
             logging.error(e)
             raise DataProcException(e)
         except KeyError as e:
+            logging.error(res)
             logging.info(e)
-        else:
-            nodes = int(res['config']["secondaryWorkerConfig"]["numInstances"])
-            return nodes
+        return nodes
 
     def patch_cluster(self, worker_nodes, preemptible_nodes):
         """Update number of nodes in a cluster"""

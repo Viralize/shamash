@@ -49,7 +49,6 @@ class DataProc:
 
     def __get_cluster_data(self):
         """Get a json with cluster data/status."""
-
         @backoff.on_exception(
             backoff.expo, HttpError, max_tries=8, giveup=utils.fatal_code)
         def _do_request():
@@ -58,11 +57,21 @@ class DataProc:
                 region=self.cluster_settings.Region,
                 clusterName=self.cluster_name).execute()
 
+        @backoff.on_predicate(backoff.expo)
+        def _validate_json(js):
+            if 'metrics' not in js:
+                return False
+            if 'yarnMetrics' not in js['metrics']:
+                return False
+            return True
+
         try:
-            return _do_request()
+            res = _do_request()
         except HttpError as e:
             logging.error(e)
             raise e
+        _validate_json(res)
+        return res
 
     def get_cluster_status(self):
         """Get status of the cluster.running updating etc"""

@@ -51,7 +51,7 @@ class DataProc:
         """Get a json with cluster data/status."""
 
         @backoff.on_exception(
-            backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
+            backoff.expo, HttpError, max_tries=8, giveup=utils.fatal_code)
         def _do_request():
             return self.dataproc.projects().regions().clusters().get(
                 projectId=utils.get_project_id(),
@@ -83,14 +83,14 @@ class DataProc:
         try:
             res = self.__get_cluster_data()
             if int(res["metrics"]["yarnMetrics"][
-                       "yarn-memory-mb-allocated"]) == 0:
+                    "yarn-memory-mb-allocated"]) == 0:
                 return -1
             if int(res["metrics"]["yarnMetrics"][
-                       "yarn-memory-mb-available"]) == 0:
+                    "yarn-memory-mb-available"]) == 0:
                 return 0
             return int(res["metrics"][
-                           "yarnMetrics"]["yarn-memory-mb-allocated"]) / int(
-                res["metrics"]["yarnMetrics"]["yarn-memory-mb-available"])
+                "yarnMetrics"]["yarn-memory-mb-allocated"]) / int(
+                    res["metrics"]["yarnMetrics"]["yarn-memory-mb-available"])
         except (HttpError, KeyError) as e:
             logging.error(e)
             raise DataProcException(e)
@@ -175,30 +175,44 @@ class DataProc:
 
     def patch_cluster(self, worker_nodes, preemptible_nodes):
         """Update number of nodes in a cluster"""
-
         """Wait for cluster"""
+        logging.debug("Wants {} {} got {} {}".format(
+            worker_nodes, preemptible_nodes, self.get_number_of_workers(),
+            self.get_number_of_preemptible_workers()))
+
+        @backoff.on_exception(
+            backoff.expo, HttpError, max_tries=8, giveup=utils.fatal_code)
+        def _do_request(mask):
+            self.dataproc.projects().regions().clusters().patch(
+                projectId=self.project_id,
+                region=self.cluster_settings.Region,
+                clusterName=self.cluster_name,
+                updateMask=mask,
+                body=body).execute()
 
         @backoff.on_predicate(backoff.expo)
         def _is_cluster_running():
             return self.get_cluster_status().lower() == 'running'
 
         _is_cluster_running()
-
-        body = json.loads('{"config":{"workerConfig":{"numInstances":%d}}}'
-                          % worker_nodes)
-
-        @backoff.on_exception(
-            backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
-        def _do_request():
-            self.dataproc.projects().regions().clusters().patch(
-                projectId=self.project_id,
-                region=self.cluster_settings.Region,
-                clusterName=self.cluster_name,
-                updateMask='config.worker_config.num_instances',
-                body=body).execute()
-
+        if self.get_number_of_workers() != worker_nodes:
+            body = json.loads('{"config":{"workerConfig":{"numInstances":%d}}}'
+                              % worker_nodes)
+            update_mask = 'config.worker_config.num_instances'
+            try:
+                _do_request(update_mask)
+            except HttpError as e:
+                raise DataProcException(e)
+        if preemptible_nodes == 0 or self.get_number_of_preemptible_workers(
+        ) == preemptible_nodes:
+            return
+        body = json.loads(
+            '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' %
+            preemptible_nodes)
+        update_mask = 'config.secondary_worker_config.num_instances'
+        _is_cluster_running()
         try:
-            _do_request()
+            _do_request(update_mask)
         except HttpError as e:
             raise DataProcException(e)
 
@@ -207,17 +221,17 @@ class DataProc:
         try:
             monitor_data = {
                 "cluster":
-                    self.cluster_name,
+                self.cluster_name,
                 "yarn_memory_available_percentage":
-                    int(self.get_yarn_memory_available_percentage()),
+                int(self.get_yarn_memory_available_percentage()),
                 "container_pending_ratio":
-                    float(self.get_container_pending_ratio()),
+                float(self.get_container_pending_ratio()),
                 "number_of_nodes":
-                    int(self.get_number_of_nodes()),
+                int(self.get_number_of_nodes()),
                 "worker_nodes":
-                    int(self.get_number_of_workers()),
+                int(self.get_number_of_workers()),
                 'yarn_containers_pending':
-                    int(self.get_yarn_containers_pending())
+                int(self.get_yarn_containers_pending())
             }
             if self.cluster_settings.PreemptiblePct != 0:
                 monitor_data['preemptible_nodes'] = int(

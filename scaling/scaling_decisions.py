@@ -1,10 +1,10 @@
 import base64
+import json
 import logging
 
+from model import settings
 from monitoring import metrics
 from util import pubsub
-from model import settings
-import json
 
 SCALING_TOPIC = 'shamash-scaling'
 
@@ -45,7 +45,7 @@ def should_scale(payload):
             container_pending_ratio, number_of_nodes))
     met = metrics.Metrics(cluster_name)
     met.write_timeseries_value('YARNMemoryAvailablePercentage',
-                               yarn_memory_available_percentage)
+                               100 * yarn_memory_available_percentage)
     met.write_timeseries_value('ContainerPendingRatio',
                                container_pending_ratio)
     met.write_timeseries_value('YarnNodes', number_of_nodes)
@@ -55,7 +55,7 @@ def should_scale(payload):
     scale_to = -1
     """No memory is allocated so no needs for more nodes just scale down to the
      minimum"""
-    if yarn_memory_available_percentage == -1:
+    if yarn_memory_available_percentage == 1:
         if number_of_nodes > cluster_settings.MinInstances:
             scaling_direction = "down"
             scale_to = cluster_settings.MinInstances

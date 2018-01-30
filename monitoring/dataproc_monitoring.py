@@ -203,7 +203,7 @@ class DataProc:
                 _do_request(update_mask)
             except HttpError as e:
                 raise DataProcException(e)
-        if preemptible_nodes == 0 or self.get_number_of_preemptible_workers(
+        if self.get_number_of_preemptible_workers(
         ) == preemptible_nodes:
             return
         body = json.loads(

@@ -69,7 +69,7 @@ Shamash requires both Google Compute Engine, Google Cloud Pub/Sub, Dataproc API 
 
 ## Flow
 
-* Every 5 minutes a cron job calls `/tasks/check_load` which create a task per cluster in the task queue.
+* Every 2 minutes a cron job calls `/tasks/check_load` which create a task per cluster in the task queue.
 * Each task is requesting `/do_monitor` with the cluster name as a parameter.
 * `/do_monitor` calls `check_load()`
 * `check_load()` get the data from the cluster and publishes it to pub/sub`pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)`

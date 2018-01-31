@@ -96,10 +96,10 @@ class DataProc:
         """
         try:
             res = self.__get_cluster_data()
-            yarn_memory_mb_allocated = int(res["metrics"]["yarnMetrics"][
-                "yarn-memory-mb-allocated"])
-            yarn_memory_mb_available = int(res["metrics"]["yarnMetrics"][
-                                               "yarn-memory-mb-available"])
+            yarn_memory_mb_allocated = int(
+                res["metrics"]["yarnMetrics"]["yarn-memory-mb-allocated"])
+            yarn_memory_mb_available = int(
+                res["metrics"]["yarnMetrics"]["yarn-memory-mb-available"])
             total_memory = yarn_memory_mb_allocated + yarn_memory_mb_available
 
             return int(yarn_memory_mb_available) / int(total_memory)
@@ -178,25 +178,26 @@ class DataProc:
 
     def get_number_of_preemptible_workers(self):
         """Get the number of 'real workers"""
+        nodes = 0
         if self.cluster_settings.PreemptiblePct == 0:
             return 0
         if self.get_number_of_workers() - self.get_number_of_nodes() == 0:
             return 0
-        nodes = 0
         try:
             res = self.__get_cluster_data()
-            nodes = int(res['config']["secondaryWorkerConfig"]["numInstances"])
         except HttpError as e:
             logging.error(e)
             raise DataProcException(e)
-        except KeyError as e:
-            logging.error(res)
-            logging.info(e)
+        if res.get('config') is not None:
+            if res.get('config').get('secondaryWorkerConfig') is not None:
+                nodes = res.get('config').get('secondaryWorkerConfig').get(
+                    'numInstances')
+                if nodes is None:
+                    nodes = 0
         return nodes
 
     def patch_cluster(self, worker_nodes, preemptible_nodes):
         """Update number of nodes in a cluster"""
-        """Wait for cluster"""
         logging.debug("Wants {} {} got {} {}".format(
             worker_nodes, preemptible_nodes, self.get_number_of_workers(),
             self.get_number_of_preemptible_workers()))
@@ -215,6 +216,7 @@ class DataProc:
         def _is_cluster_running():
             return self.get_cluster_status().lower() == 'running'
 
+        """Wait for cluster"""
         _is_cluster_running()
         if self.get_number_of_workers() != worker_nodes:
             body = json.loads('{"config":{"workerConfig":{"numInstances":%d}}}'
@@ -225,7 +227,7 @@ class DataProc:
             except HttpError as e:
                 raise DataProcException(e)
         if self.get_number_of_preemptible_workers() == preemptible_nodes:
-            return
+            return 'ok', 204
         body = json.loads(
             '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' %
             preemptible_nodes)
@@ -235,6 +237,7 @@ class DataProc:
             _do_request(update_mask)
         except HttpError as e:
             raise DataProcException(e)
+        return 'ok', 200
 
     def check_load(self):
         """Get the current cluster metrics and publish them to pub/sub """
@@ -273,3 +276,33 @@ class DataProc:
             logging.error(e)
             return 'Error', 500
         return 'OK', 204
+
+    def get_memory_data(self):
+        try:
+            res = self.__get_cluster_data()
+        except (HttpError, KeyError) as e:
+            logging.error(res)
+            logging.error(e)
+            raise DataProcException(e)
+        else:
+            yarn_memory_mb_allocated = int(
+                res["metrics"]["yarnMetrics"]["yarn-memory-mb-allocated"])
+            yarn_memory_mb_pending = int(
+                res["metrics"]["yarnMetrics"]["yarn-memory-mb-pending"])
+
+            return yarn_memory_mb_allocated, yarn_memory_mb_pending
+
+    def get_container_data(self):
+        try:
+            res = self.__get_cluster_data()
+        except (HttpError, KeyError) as e:
+            logging.error(res)
+            logging.error(e)
+            raise DataProcException(e)
+        else:
+            yarn_containers_allocated = int(
+                res["metrics"]["yarnMetrics"]["yarn-containers-allocated"])
+            yarn_containers_pending = int(
+                res["metrics"]["yarnMetrics"]["yarn-containers-pending"])
+
+            return yarn_containers_allocated, yarn_containers_pending

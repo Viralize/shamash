@@ -108,9 +108,29 @@ def do_monitor():
     return dp.check_load()
 
 
+@app.route('/do_patch', methods=['GET'])
+def do_patch():
+    """
+    called by task to do the actual cluster update
+    :return:
+    """
+    dp = dataproc_monitoring.DataProc(request.args.get('cluster_name'))
+    new_workers = int(request.args.get('new_workers'))
+    new_preemptible = int(request.args.get('new_preemptible'))
+    logging.debug('Patching new_workers {} new_preemptible {}'.format(
+        new_workers, new_preemptible))
+    try:
+        dp.patch_cluster(new_workers, new_preemptible)
+    except dataproc_monitoring.DataProcException as e:
+        logging.error(e)
+        return 'error', 500
+    return 'ok', 200
+
+
 @app.route('/favicon.ico')
 def favicon():
     return redirect('/static/favicon.ico', 302)
+
 
 @app.errorhandler(500)
 def server_error(e):

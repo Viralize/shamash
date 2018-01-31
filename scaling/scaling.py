@@ -4,12 +4,12 @@ import json
 import logging
 
 import numpy as np
+from google.appengine.api import taskqueue
 
 from model import settings
 from monitoring import dataproc_monitoring, metrics
 
 TIME_SERIES_HISTORY_IN_MINUTES = 60
-NO_MORE_MEMORY_STEP = 4
 
 
 class ScalingException(Exception):
@@ -72,15 +72,41 @@ class Scale:
             logging.debug("No allocated memory lets go down! New workers {}"
                           " New preemptibel".format(self.total))
             return
-
-        # no more memory lets get some lets at 4 nodes
+        """ no more memory lets get some  nodes. claculate how many memory each
+         node uses. Then calculate how many nodes we need by memory consumption  
+        """
         if self.dp.get_yarn_memory_available_percentage() == 0:
-            add_more = NO_MORE_MEMORY_STEP
-            logging.debug("no more memory lets get {}  nodes".format(add_more))
-
-            self.total = self.current_nodes + add_more
-            logging.debug("New workers {}  prev {} ".format(
+            yarn_memory_mb_allocated, yarn_memory_mb_pending = self.dp.get_memory_data(
+            )
+            ratio = float(
+                int(yarn_memory_mb_allocated) / int(self.current_nodes))
+            factor = float(int(yarn_memory_mb_pending) / ratio)
+            self.total = int(self.current_nodes * factor)
+            logging.debug(
+                "yarn_memory_mb_allocated {} pending {} ratio {} factor {}"
+                " current {} total {}".format(
+                    yarn_memory_mb_allocated, yarn_memory_mb_pending, ratio,
+                    factor, self.current_nodes, self.total))
+            logging.debug("No More Mem! New workers {}  prev {} ".format(
                 self.total, self.current_nodes))
+            return
+
+        # pending containers are waiting....
+        if self.containerpendingratio != -1:
+            yarn_containers_allocated, yarn_containers_pending = self.dp.get_container_data(
+            )
+            ratio = float(
+                int(yarn_containers_allocated) / int(self.current_nodes))
+            factor = float(int(yarn_containers_pending) / ratio)
+            self.total = int(self.current_nodes * factor)
+            logging.debug(
+                "yarn_containers_allocated {} pending {} ratio {} factor {}"
+                " current {} total {}".format(
+                    yarn_containers_allocated, yarn_containers_pending, ratio,
+                    factor, self.current_nodes, self.total))
+            logging.debug(
+                "Need more containers! New workers {}  prev {} ".format(
+                    self.total, self.current_nodes))
             return
 
         self.calc_scale()
@@ -90,7 +116,7 @@ class Scale:
         calculate and actually scale the cluster
         :return:
         """
-        logging.debug("Starting do_scale  {}".format(self.total))
+        logging.debug("Starting do_scale  {}".format(self.current_nodes))
         self.calc_how_many()
         self.total = min(self.total, self.MaxInstances)
         logging.info("Scaling to workers {} ".format(self.total))
@@ -103,12 +129,16 @@ class Scale:
         new_workers, new_preemptible = self.preserve_ratio()
 
         # do the scaling
-
-        try:
-            self.dp.patch_cluster(new_workers, new_preemptible)
-        except dataproc_monitoring.DataProcException as e:
-            logging.error(e)
-            return 'Error', 500
+        task = taskqueue.add(
+            queue_name="shamash",
+            url="/do_patch",
+            method='GET',
+            params={
+                'cluster_name': self.cluster_name,
+                'new_workers': new_workers,
+                'new_preemptible': new_preemptible
+            })
+        logging.debug('Task {} enqueued, ETA {}.'.format(task.name, task.eta))
         return 'ok', 204
 
     def calc_slope(self, minuets):
@@ -148,20 +178,13 @@ class Scale:
         :return:
         """
 
-        # pending containers are waiting....
-        if self.containerpendingratio != -1:
-            self.total = int(self.current_nodes + self.current_nodes *
-                             (1 / self.preemptible_pct))
+        sl = self.calc_slope(TIME_SERIES_HISTORY_IN_MINUTES)
+        if sl != 0:
+            slope = (1 / sl)
+            logging.debug('Slope is {}'.format(slope))
+            self.total = self.total + slope
             logging.debug("New workers {}  prev {} ".format(
                 self.total, self.current_nodes))
-        else:
-            sl = self.calc_slope(TIME_SERIES_HISTORY_IN_MINUTES)
-            if sl != 0:
-                slope = (1 / sl)
-                logging.debug('Slope is {}'.format(slope))
-                self.total = self.total + slope
-                logging.debug("New workers {}  prev {} ".format(
-                    self.total, self.current_nodes))
         logging.info("New workers {}  prev {} ".format(self.total,
                                                        self.current_nodes))
 
@@ -171,8 +194,8 @@ class Scale:
         """
 
         scale_ratio = (float(self.cluster_settings.PreemptiblePct) / 100.0)
-        new_preemptible = int(scale_ratio * self.total)
-        new_workers = int((1 - scale_ratio) * self.total)
+        new_preemptible = int(round(scale_ratio * self.total))
+        new_workers = int(round((1 - scale_ratio) * self.total))
         logging.debug("new_workers {} new_preemptible {}".format(
             new_workers, new_preemptible))
         # Make sure that we have the minimum normal workers
@@ -189,6 +212,7 @@ class Scale:
                     new_preemptible))
             diff = self.total - (new_workers + new_preemptible)
             new_preemptible = new_preemptible + diff
+        new_preemptible = max(0, new_preemptible)
 
         logging.debug("After adjustment {} {} ".format(new_workers,
                                                        new_preemptible))

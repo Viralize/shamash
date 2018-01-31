@@ -5,7 +5,7 @@ if [ -z "$PROJECTID" ]; then
  echo Project $1 Not Found!
  exit
 fi
-echo Project ID $PROJECTID App is $APP
+echo Project ID $PROJECTID
 gcloud config set project $PROJECTID
 
 

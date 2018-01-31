@@ -1,6 +1,6 @@
 # Shamash - Autoscaling for Dataproc
 
-[![License](https://img.shields.io/github/license/doitintl/shamash.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/doitintl/shamash.svg)](LICENSE) [![GitHub stars](https://img.shields.io/github/stars/doitintl/shamash.svg?style=social&label=Stars&style=for-the-badge)](https://github.com/doitintl/shamash)
 
 Shamash is a service for autoscaling Cloud DataProc on Google Cloud Platform(GCP).
 

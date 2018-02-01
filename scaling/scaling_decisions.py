@@ -36,6 +36,8 @@ def should_scale(payload):
     number_of_nodes = data['number_of_nodes']
     cluster_name = data['cluster']
     yarn_containers_pending = data['yarn_containers_pending']
+    workers = data['workers']
+    preemptible_workers = data['preemptible_workers']
     s = settings.get_cluster_settings(cluster_name)
     for st in s:
         cluster_settings = st
@@ -48,7 +50,10 @@ def should_scale(payload):
                                100 * yarn_memory_available_percentage)
     met.write_timeseries_value('ContainerPendingRatio',
                                container_pending_ratio)
-    met.write_timeseries_value('YarnNodes', number_of_nodes)
+    met.write_timeseries_value('YarnNodes',
+                               str(int(workers) + int(preemptible_workers)))
+    met.write_timeseries_value('Workers', workers)
+    met.write_timeseries_value('PreemptibleWorkers', preemptible_workers)
 
     scaling_direction = None
     containerpendingratio = -1

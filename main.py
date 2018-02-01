@@ -1,9 +1,8 @@
 """Entry point for Shamash"""
 import logging
-import os
 
 import flask_admin
-from flask import Flask, request, redirect, send_from_directory
+from flask import Flask, request, redirect
 from google.appengine.api import taskqueue
 
 from model import settings
@@ -114,13 +113,17 @@ def do_patch():
     called by task to do the actual cluster update
     :return:
     """
-    dp = dataproc_monitoring.DataProc(request.args.get('cluster_name'))
     new_workers = int(request.args.get('new_workers'))
     new_preemptible = int(request.args.get('new_preemptible'))
+    cluster_name = request.args.get('cluster_name')
+    logging.debug("Task Starting for  {}".format(cluster_name))
+    dp = dataproc_monitoring.DataProc(cluster_name)
     logging.debug('Patching new_workers {} new_preemptible {}'.format(
         new_workers, new_preemptible))
     try:
+        logging.debug("Start Patching  {}".format(cluster_name))
         dp.patch_cluster(new_workers, new_preemptible)
+        logging.debug("Done Patching  {}".format(cluster_name))
     except dataproc_monitoring.DataProcException as e:
         logging.error(e)
         return 'error', 500

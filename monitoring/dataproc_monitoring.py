@@ -14,6 +14,7 @@ from util import pubsub, utils
 SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
 
 MONITORING_TOPIC = 'shamash-monitoring'
+
 credentials = app_engine.Credentials(scopes=SCOPES)
 
 
@@ -146,7 +147,6 @@ class DataProc:
 
     def get_number_of_workers(self):
         """Get the number of 'real workers"""
-        nodes = 0
         try:
             res = self.__get_cluster_data()
         except (HttpError, KeyError) as e:
@@ -162,7 +162,6 @@ class DataProc:
         Get the number of pending containers.
         :return:
         """
-        pending = 0
         try:
             res = self.__get_cluster_data()
         except HttpError as e:
@@ -254,7 +253,11 @@ class DataProc:
                 "worker_nodes":
                 int(self.get_number_of_workers()),
                 'yarn_containers_pending':
-                int(self.get_yarn_containers_pending())
+                int(self.get_yarn_containers_pending()),
+                'preemptible_workers':
+                self.get_number_of_preemptible_workers(),
+                'workers':
+                self.get_number_of_workers()
             }
             if self.cluster_settings.PreemptiblePct != 0:
                 monitor_data['preemptible_nodes'] = int(

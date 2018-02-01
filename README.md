@@ -76,8 +76,12 @@ Shamash requires both Google Compute Engine, Google Cloud Pub/Sub, Dataproc API 
 * `/get_monitoring_data` is invoked when there is a new message in the monitoring topic and calls /should_scale
 * should_scale decide if the cluster has to be rescaled. If yes, trigger_scaling which put data into pub/sub scaling topic
 * `/scale` invokes, gets the message from pub/sub and  calls `do_scale`
-* Once the calculations are done Shamash will patch the cluster with a new number of nodes.
+* Once the calculations are done Shamash will patch the cluster with a new 
+number of nodes.
 
+## Visualization
+
+![](Shamash_-_Dashboard.png)
 ### Local Development
 For local development run:
 

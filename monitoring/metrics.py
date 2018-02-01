@@ -58,7 +58,7 @@ class Metrics:
         self.cluster_name = cluster_name
         self.metrics = [
             'ContainerPendingRatio', 'YARNMemoryAvailablePercentage',
-            'YarnNodes'
+            'YarnNodes', 'Workers', 'PreemptibleWorkers'
         ]
 
     def init_metrics(self):

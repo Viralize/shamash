@@ -49,7 +49,7 @@ class Scale:
         self.UpContainerPendingRatio = self.cluster_settings.UpContainerPendingRatio
         if self.preemptible_pct != 100:
             self.preemptibles_to_workers_ratio = self.preemptible_pct / (
-                100 - self.preemptible_pct)
+                    100 - self.preemptible_pct)
         else:
             self.preemptibles_to_workers_ratio = -1
 
@@ -129,16 +129,20 @@ class Scale:
         new_workers, new_preemptible = self.preserve_ratio()
 
         # do the scaling
+        retry_options = taskqueue.TaskRetryOptions(task_retry_limit=0)
         task = taskqueue.add(
             queue_name="shamash",
             url="/do_patch",
             method='GET',
+            retry_options=retry_options,
             params={
                 'cluster_name': self.cluster_name,
                 'new_workers': new_workers,
                 'new_preemptible': new_preemptible
             })
-        logging.debug('Task {} enqueued, ETA {}.'.format(task.name, task.eta))
+        logging.debug(
+            'Task {} enqueued, ETA {} Cluster {}'.format(task.name, task.eta,
+                                                         self.cluster_name))
         return 'ok', 204
 
     def calc_slope(self, minuets):

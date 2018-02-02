@@ -46,7 +46,7 @@ class DataProc:
             for st in s:
                 self.cluster_settings = st
         else:
-            raise DataProcException("Cluster not found!")
+            raise DataProcException('Cluster not found!')
 
     def __get_cluster_data(self):
         """Get a json with cluster data/status."""
@@ -81,7 +81,6 @@ class DataProc:
             cluster_data = self.__get_cluster_data()
 
         except (HttpError, KeyError) as e:
-            logging.error(cluster_data)
             logging.error(e)
             raise DataProcException(e)
         else:
@@ -98,14 +97,13 @@ class DataProc:
         try:
             res = self.__get_cluster_data()
             yarn_memory_mb_allocated = int(
-                res["metrics"]["yarnMetrics"]["yarn-memory-mb-allocated"])
+                res['metrics']['yarnMetrics']['yarn-memory-mb-allocated'])
             yarn_memory_mb_available = int(
-                res["metrics"]["yarnMetrics"]["yarn-memory-mb-available"])
+                res['metrics']['yarnMetrics']['yarn-memory-mb-available'])
             total_memory = yarn_memory_mb_allocated + yarn_memory_mb_available
 
             return int(yarn_memory_mb_available) / int(total_memory)
         except (HttpError, KeyError) as e:
-            logging.error(res)
             logging.error(e)
             raise DataProcException(e)
 
@@ -120,17 +118,16 @@ class DataProc:
             res = self.__get_cluster_data()
 
             yarn_containers_pending = int(
-                res["metrics"]["yarnMetrics"]["yarn-containers-pending"])
+                res['metrics']['yarnMetric']['yarn-containers-pending'])
 
             yarn_container_allocated = int(
-                res["metrics"]["yarnMetrics"]["yarn-containers-allocated"])
+                res['metrics']['yarnMetrics']['yarn-containers-allocated'])
 
             if yarn_container_allocated == 0:
                 return yarn_containers_pending
 
             return yarn_containers_pending / yarn_container_allocated
         except (HttpError, KeyError) as e:
-            logging.error(res)
             logging.error(e)
             raise DataProcException(e)
 
@@ -138,9 +135,8 @@ class DataProc:
         """Get the number of active nodes in a cluster"""
         try:
             res = self.__get_cluster_data()
-            nodes = int(res["metrics"]["yarnMetrics"]["yarn-nodes-active"])
+            nodes = int(res['metrics']['yarnMetrics']['yarn-nodes-active'])
         except (HttpError, KeyError) as e:
-            logging.error(res)
             logging.error(e)
             raise DataProcException(e)
         return nodes
@@ -150,11 +146,10 @@ class DataProc:
         try:
             res = self.__get_cluster_data()
         except (HttpError, KeyError) as e:
-            logging.error(res)
             logging.error(e)
             raise DataProcException(e)
         else:
-            nodes = int(res['config']["workerConfig"]["numInstances"])
+            nodes = int(res['config']['workerConfig']['numInstances'])
             return nodes
 
     def get_yarn_containers_pending(self):
@@ -168,11 +163,10 @@ class DataProc:
             logging.error(e)
             raise DataProcException(e)
         except KeyError as e:
-            logging.error(res)
             logging.info(e)
         else:
             pending = int(
-                res["metrics"]["yarnMetrics"]["yarn-containers-pending"])
+                res['metrics']['yarnMetrics']['yarn-containers-pending'])
             return pending
 
     def get_number_of_preemptible_workers(self):
@@ -218,13 +212,14 @@ class DataProc:
         """Wait for cluster"""
         _is_cluster_running()
         if self.get_number_of_workers() != worker_nodes:
-            body = json.loads('{"config":{"workerConfig":{"numInstances":%d}}}'
-                              % worker_nodes)
+            body = json.loads(
+                '{config":{workerConfig":{"numInstances":%d}}}' % worker_nodes)
             update_mask = 'config.worker_config.num_instances'
             try:
                 _do_request(update_mask)
             except HttpError as e:
                 raise DataProcException(e)
+
         if self.get_number_of_preemptible_workers() == preemptible_nodes:
             return 'ok', 204
         body = json.loads(
@@ -242,15 +237,15 @@ class DataProc:
         """Get the current cluster metrics and publish them to pub/sub """
         try:
             monitor_data = {
-                "cluster":
+                'cluster':
                 self.cluster_name,
-                "yarn_memory_available_percentage":
+                'yarn_memory_available_percentage':
                 float(self.get_yarn_memory_available_percentage()),
-                "container_pending_ratio":
+                'container_pending_ratio':
                 float(self.get_container_pending_ratio()),
-                "number_of_nodes":
+                'number_of_nodes':
                 int(self.get_number_of_nodes()),
-                "worker_nodes":
+                'worker_nodes':
                 int(self.get_number_of_workers()),
                 'yarn_containers_pending':
                 int(self.get_yarn_containers_pending()),
@@ -270,7 +265,8 @@ class DataProc:
                 'data': base64.b64encode(json.dumps(monitor_data))
             }]
         }
-        logging.debug("Monitor data for {} is |{}".format(
+
+        logging.debug('Monitor data for {} is |{}'.format(
             self.cluster_name, json.dumps(monitor_data)))
         pubsub_client = pubsub.get_pubsub_client()
         try:
@@ -281,31 +277,37 @@ class DataProc:
         return 'OK', 204
 
     def get_memory_data(self):
+        """
+         retrieve yarn_memory_mb_allocated, yarn_memory_mb_pending
+        :return: yarn_memory_mb_allocated, yarn_memory_mb_pending
+        """
         try:
             res = self.__get_cluster_data()
         except (HttpError, KeyError) as e:
-            logging.error(res)
             logging.error(e)
             raise DataProcException(e)
         else:
             yarn_memory_mb_allocated = int(
-                res["metrics"]["yarnMetrics"]["yarn-memory-mb-allocated"])
+                res['metrics']['yarnMetrics']['yarn-memory-mb-allocated'])
             yarn_memory_mb_pending = int(
-                res["metrics"]["yarnMetrics"]["yarn-memory-mb-pending"])
+                res['metrics']['yarnMetrics']['yarn-memory-mb-pending'])
 
             return yarn_memory_mb_allocated, yarn_memory_mb_pending
 
     def get_container_data(self):
+        """
+        retrieve container  status
+        :return: yarn_containers_allocated, yarn_containers_pending
+        """
         try:
             res = self.__get_cluster_data()
         except (HttpError, KeyError) as e:
-            logging.error(res)
             logging.error(e)
             raise DataProcException(e)
         else:
             yarn_containers_allocated = int(
-                res["metrics"]["yarnMetrics"]["yarn-containers-allocated"])
+                res['metrics']['yarnMetrics']['yarn-containers-allocated'])
             yarn_containers_pending = int(
-                res["metrics"]["yarnMetrics"]["yarn-containers-pending"])
+                res['metrics']['yarnMetrics']['yarn-containers-pending'])
 
             return yarn_containers_allocated, yarn_containers_pending

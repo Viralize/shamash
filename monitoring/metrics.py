@@ -62,6 +62,9 @@ class Metrics:
         ]
 
     def init_metrics(self):
+        """
+        Make sure that we have all of our custom metrics
+        """
         for met in self.metrics:
             if not self._custome_metric_exists(met):
                 self._create_custom_metric(met)
@@ -71,17 +74,17 @@ class Metrics:
         now = get_now_rfc3339()
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
         timeseries_data = {
-            "metricKind":
-            "GAUGE",
-            "valueType":
-            "DOUBLE",
-            "points": [{
-                "interval": {
-                    "startTime": now,
-                    "endTime": now
+            'metricKind':
+            'GAUGE',
+            'valueType':
+            'DOUBLE',
+            'points': [{
+                'interval': {
+                    'startTime': now,
+                    'endTime': now
                 },
-                "value": {
-                    "doubleValue": data_point
+                'value': {
+                    'doubleValue': data_point
                 }
             }],
             'metric': {
@@ -90,9 +93,9 @@ class Metrics:
                     'cluster_name': self.cluster_name
                 }
             },
-            "resource": {
-                "type": 'global',
-                "labels": {
+            'resource': {
+                'type': 'global',
+                'labels': {
                     'project_id': self.project_id
                 }
             }
@@ -104,7 +107,7 @@ class Metrics:
             self.monitorservice.projects().timeSeries().create(
                 name=self.project_resource,
                 body={
-                    "timeSeries": [timeseries_data]
+                    'timeSeries': [timeseries_data]
                 }).execute()
 
         try:
@@ -123,7 +126,7 @@ class Metrics:
         """
 
         out = []
-        custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
+        custom_metric = '{}/{}'.format(self.metric_domain, custom_metric_type)
         default_request_kwargs = dict(
             name=self.project_resource,
             filter='metric.type="{0}" AND metric.labels.cluster_name="{1}"'.
@@ -161,19 +164,17 @@ class Metrics:
         self._custome_metric_exists(custom_metric_type)
         custom_metric = "{}/{}".format(self.metric_domain, custom_metric_type)
         metrics_descriptor = {
-            "type":
+            'type':
             custom_metric,
-            "metricKind":
-            "GAUGE",
-            "valueType":
-            "DOUBLE",
-            "description":
-            "Shamash Dataproc scaling",
+            'metricKind':
+            'GAUGE',
+            'valueType':
+            'DOUBLE',
+            'description':
+            'Shamash Dataproc scaling',
             'name':
             "{}/metricDescriptors/{}".format(self.project_resource,
                                              custom_metric_type),
-            'type':
-            custom_metric
         }
 
         @backoff.on_exception(

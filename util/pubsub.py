@@ -51,19 +51,29 @@ def publish(client, body, topic):
 
 
 def create_subscriptions(client, sub, topic):
+    """
+    Create a subscription in pub/sub
+    :param client:
+    :param sub:
+    :param topic:
+    :return:
+    """
     project = 'projects/{}'.format(utils.get_project_id())
     dest_sub = project + '/subscriptions/' + sub
     dest_topic = project + '/topics/' + topic
     body = {'topic': dest_topic}
+
     @backoff.on_exception(
         backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
     def _do_get_request():
-        return client.projects().subscriptions().get(subscription=dest_sub).execute()
+        return client.projects().subscriptions().get(
+            subscription=dest_sub).execute()
 
     @backoff.on_exception(
         backoff.expo, HttpError, max_tries=3, giveup=utils.fatal_code)
     def _do_create_request():
-        client.projects().subscriptions().create(name=dest_sub, body=body).execute()
+        client.projects().subscriptions().create(
+            name=dest_sub, body=body).execute()
 
     try:
         _do_get_request()
@@ -107,7 +117,7 @@ def create_topic(client, topic):
 
 def fqrn(resource_type, project, resource):
     """Return a fully qualified resource name for Cloud Pub/Sub."""
-    return "projects/{}/{}/{}".format(project, resource_type, resource)
+    return 'projects/{}/{}/{}'.format(project, resource_type, resource)
 
 
 def get_full_subscription_name(project, subscription):

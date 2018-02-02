@@ -44,9 +44,9 @@ def get_host_name():
     :return: hostname
     """
     if detect_gae():
-        hostname = "{}.appspot.com".format(app_identity.get_application_id())
+        hostname = '{}.appspot.com'.format(app_identity.get_application_id())
     else:
-        hostname = "{}.appspot.com".format(_get_project_id())
+        hostname = '{}.appspot.com'.format(_get_project_id())
     return hostname
 
 
@@ -57,4 +57,3 @@ def fatal_code(e):
     :return:
     """
     return e.resp.status < 500
-

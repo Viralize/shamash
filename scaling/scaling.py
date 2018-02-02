@@ -36,7 +36,8 @@ class Scale:
             for st in s:
                 self.cluster_settings = st
         else:
-            raise ScalingException("Cluster not found!")
+            raise ScalingException('Cluster not found!')
+
         self.total = 0
         self.dp = dataproc_monitoring.DataProc(data['cluster'])
         self.scale_to = data['scale_to']
@@ -46,10 +47,12 @@ class Scale:
         self.preemptible_pct = self.cluster_settings.PreemptiblePct
         self.MinInstances = self.cluster_settings.MinInstances
         self.MaxInstances = self.cluster_settings.MaxInstances
-        self.UpContainerPendingRatio = self.cluster_settings.UpContainerPendingRatio
+
+        self.UpContainerPendingRatio = \
+            self.cluster_settings.UpContainerPendingRatio
         if self.preemptible_pct != 100:
             self.preemptibles_to_workers_ratio = self.preemptible_pct / (
-                    100 - self.preemptible_pct)
+                100 - self.preemptible_pct)
         else:
             self.preemptibles_to_workers_ratio = -1
 
@@ -69,43 +72,43 @@ class Scale:
         # bare minimum
         if self.scale_to != -1:
             self.total = self.MinInstances
-            logging.debug("No allocated memory lets go down! New workers {}"
-                          " New preemptibel".format(self.total))
+            logging.debug('No allocated memory lets go down! New workers {}'
+                          ' New preemptibel'.format(self.total))
             return
         """ no more memory lets get some  nodes. claculate how many memory each
          node uses. Then calculate how many nodes we need by memory consumption  
         """
         if self.dp.get_yarn_memory_available_percentage() == 0:
-            yarn_memory_mb_allocated, yarn_memory_mb_pending = self.dp.get_memory_data(
-            )
+            yarn_memory_mb_allocated, yarn_memory_mb_pending = \
+                self.dp.get_memory_data()
             ratio = float(
                 int(yarn_memory_mb_allocated) / int(self.current_nodes))
             factor = float(int(yarn_memory_mb_pending) / ratio)
             self.total = int(self.current_nodes * factor)
             logging.debug(
-                "yarn_memory_mb_allocated {} pending {} ratio {} factor {}"
-                " current {} total {}".format(
+                'yarn_memory_mb_allocated {} pending {} ratio {} factor {}'
+                ' current {} total {}'.format(
                     yarn_memory_mb_allocated, yarn_memory_mb_pending, ratio,
                     factor, self.current_nodes, self.total))
-            logging.debug("No More Mem! New workers {}  prev {} ".format(
+            logging.debug('No More Mem! New workers {}  prev {} '.format(
                 self.total, self.current_nodes))
             return
 
         # pending containers are waiting....
         if self.containerpendingratio != -1:
-            yarn_containers_allocated, yarn_containers_pending = self.dp.get_container_data(
-            )
+            yarn_containers_allocated, yarn_containers_pending =\
+                self.dp.get_container_data()
             ratio = float(
                 int(yarn_containers_allocated) / int(self.current_nodes))
             factor = float(int(yarn_containers_pending) / ratio)
             self.total = int(self.current_nodes * factor)
             logging.debug(
-                "yarn_containers_allocated {} pending {} ratio {} factor {}"
-                " current {} total {}".format(
+                'yarn_containers_allocated {} pending {} ratio {} factor {}'
+                ' current {} total {}'.format(
                     yarn_containers_allocated, yarn_containers_pending, ratio,
                     factor, self.current_nodes, self.total))
             logging.debug(
-                "Need more containers! New workers {}  prev {} ".format(
+                'Need more containers! New workers {}  prev {} '.format(
                     self.total, self.current_nodes))
             return
 
@@ -116,13 +119,13 @@ class Scale:
         calculate and actually scale the cluster
         :return:
         """
-        logging.debug("Starting do_scale  {}".format(self.current_nodes))
+        logging.debug('Starting do_scale  {}'.format(self.current_nodes))
         self.calc_how_many()
         self.total = min(self.total, self.MaxInstances)
         logging.info("Scaling to workers {} ".format(self.total))
 
         if self.total == self.current_nodes:
-            logging.debug("Not Modified")
+            logging.debug('Not Modified')
             return 'Not Modified', 200
 
         # make sure that we have the correct ratio between 2 type of workers
@@ -131,7 +134,7 @@ class Scale:
         # do the scaling
         retry_options = taskqueue.TaskRetryOptions(task_retry_limit=0)
         task = taskqueue.add(
-            queue_name="shamash",
+            queue_name='shamash',
             url="/do_patch",
             method='GET',
             retry_options=retry_options,
@@ -140,9 +143,8 @@ class Scale:
                 'new_workers': new_workers,
                 'new_preemptible': new_preemptible
             })
-        logging.debug(
-            'Task {} enqueued, ETA {} Cluster {}'.format(task.name, task.eta,
-                                                         self.cluster_name))
+        logging.debug('Task {} enqueued, ETA {} Cluster {}'.format(
+            task.name, task.eta, self.cluster_name))
         return 'ok', 204
 
     def calc_slope(self, minuets):
@@ -164,14 +166,14 @@ class Scale:
             i = i - 1
         try:
             slope, intercept = np.polyfit(x, y, 1)
-            logging.debug("Slope is {}".format(slope))
+            logging.debug('Slope is {}'.format(slope))
         except np.RankWarning:
             # not enough data so add remove by 2
             if self.scaling_direction == 'up':
                 slope = 1
             else:
                 slope = -1
-            logging.debug("No Data slope is {}".format(slope))
+            logging.debug('No Data slope is {}'.format(slope))
 
         return slope
 
@@ -187,9 +189,9 @@ class Scale:
             slope = (1 / sl)
             logging.debug('Slope is {}'.format(slope))
             self.total = self.total + slope
-            logging.debug("New workers {}  prev {} ".format(
+            logging.debug('New workers {}  prev {} '.format(
                 self.total, self.current_nodes))
-        logging.info("New workers {}  prev {} ".format(self.total,
+        logging.info('New workers {}  prev {} '.format(self.total,
                                                        self.current_nodes))
 
     def preserve_ratio(self):
@@ -200,24 +202,26 @@ class Scale:
         scale_ratio = (float(self.cluster_settings.PreemptiblePct) / 100.0)
         new_preemptible = int(round(scale_ratio * self.total))
         new_workers = int(round((1 - scale_ratio) * self.total))
-        logging.debug("new_workers {} new_preemptible {}".format(
+        logging.debug('new_workers {} new_preemptible {}'.format(
             new_workers, new_preemptible))
+
         # Make sure that we have the minimum normal workers
         if new_workers < self.MinInstances:
-            logging.debug("Adjusting minimum as well {}".format(new_workers))
+            logging.debug('Adjusting minimum as well {}'.format(new_workers))
             diff = self.MinInstances - new_workers
             new_workers = self.MinInstances
             new_preemptible = new_preemptible - diff
+
         """ Make sure that we didn't fuck up and we have the requested number of 
             preemptible workers"""
         if self.total > new_workers + new_preemptible:
             logging.debug(
-                "Adjusting number of preemptible workers to {}".format(
+                'Adjusting number of preemptible workers to {}'.format(
                     new_preemptible))
             diff = self.total - (new_workers + new_preemptible)
             new_preemptible = new_preemptible + diff
-        new_preemptible = max(0, new_preemptible)
 
-        logging.debug("After adjustment {} {} ".format(new_workers,
+        new_preemptible = max(0, new_preemptible)
+        logging.debug('After adjustment {} {} '.format(new_workers,
                                                        new_preemptible))
         return new_workers, new_preemptible

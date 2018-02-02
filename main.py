@@ -40,7 +40,7 @@ def create_app():
     pubsub.create_subscriptions(client, 'monitoring', 'shamash-monitoring')
     pubsub.create_subscriptions(client, 'scaling', 'shamash-scaling')
     pubsub.pull(client, 'monitoring',
-                "https://{}/get_monitoring_data".format(hostname))
+                'https://{}/get_monitoring_data'.format(hostname))
     pubsub.pull(client, 'scaling', "https://{}/scale".format(hostname))
 
 
@@ -86,7 +86,7 @@ def check_load():
     clusters = settings.get_all_clusters_settings()
     for cluster in clusters.iter():
         task = taskqueue.add(
-            queue_name="shamash",
+            queue_name='shamash',
             url="/do_monitor",
             method='GET',
             params={
@@ -116,14 +116,14 @@ def do_patch():
     new_workers = int(request.args.get('new_workers'))
     new_preemptible = int(request.args.get('new_preemptible'))
     cluster_name = request.args.get('cluster_name')
-    logging.debug("Task Starting for  {}".format(cluster_name))
+    logging.debug('Task Starting for  {}'.format(cluster_name))
     dp = dataproc_monitoring.DataProc(cluster_name)
     logging.debug('Patching new_workers {} new_preemptible {}'.format(
         new_workers, new_preemptible))
     try:
-        logging.debug("Start Patching  {}".format(cluster_name))
+        logging.debug('Start Patching  {}'.format(cluster_name))
         dp.patch_cluster(new_workers, new_preemptible)
-        logging.debug("Done Patching  {}".format(cluster_name))
+        logging.debug('Done Patching  {}'.format(cluster_name))
     except dataproc_monitoring.DataProcException as e:
         logging.error(e)
         return 'error', 500
@@ -132,6 +132,10 @@ def do_patch():
 
 @app.route('/favicon.ico')
 def favicon():
+    """
+    Get the amazing favicon
+    :return:
+    """
     return redirect('/static/favicon.ico', 302)
 
 

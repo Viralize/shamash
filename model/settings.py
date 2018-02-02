@@ -32,7 +32,8 @@ class Settings(ndb.Model):
     Setting management for Shamash
     """
     Cluster = ndb.StringProperty(indexed=True, required=True)
-    Region = ndb.StringProperty(choices=get_regions(), default='us-east1', required=True)
+    Region = ndb.StringProperty(
+        choices=get_regions(), default='us-east1', required=True)
     UpYARNMemAvailPct = ndb.IntegerProperty(default=15, required=True)
     DownYARNMemAvailePct = ndb.IntegerProperty(default=75, required=True)
     UpContainerPendingRatio = ndb.FloatProperty(default=1, required=True)

@@ -1,3 +1,4 @@
+"""Validator functions for the forms"""
 from wtforms.validators import EqualTo
 from wtforms.validators import ValidationError
 

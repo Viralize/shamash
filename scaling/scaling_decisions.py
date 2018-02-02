@@ -1,3 +1,4 @@
+"""Helper functions for scaling """
 import base64
 import json
 import logging
@@ -14,7 +15,7 @@ def trigger_scaling(direction):
     Start scaling operation
     :param direction:
     """
-    logging.info("Trigger Scaling {}".format(direction))
+    logging.info('Trigger Scaling {}'.format(direction))
     msg = {'messages': [{'data': base64.b64encode(json.dumps(direction))}]}
     pubsub_client = pubsub.get_pubsub_client()
     try:
@@ -29,7 +30,7 @@ def should_scale(payload):
     :param payload:
     :return:
     """
-
+    cluster_settings = None
     data = json.loads(base64.b64decode(payload))
     yarn_memory_available_percentage = data['yarn_memory_available_percentage']
     container_pending_ratio = data['container_pending_ratio']
@@ -42,7 +43,7 @@ def should_scale(payload):
     for st in s:
         cluster_settings = st
     logging.info(
-        "Cluster {} YARNMemAvailPct {} ContainerPendingRatio {}".format(
+        'Cluster {} YARNMemAvailPct {} ContainerPendingRatio {}'.format(
             cluster_name, yarn_memory_available_percentage,
             container_pending_ratio, number_of_nodes))
     met = metrics.Metrics(cluster_name)
@@ -62,24 +63,24 @@ def should_scale(payload):
      minimum"""
     if yarn_memory_available_percentage == 1:
         if number_of_nodes > cluster_settings.MinInstances:
-            scaling_direction = "down"
+            scaling_direction = 'down'
             scale_to = cluster_settings.MinInstances
     # We don't have enough memory lets go up
     elif yarn_memory_available_percentage < cluster_settings.UpYARNMemAvailPct:
-        scaling_direction = "up"
+        scaling_direction = 'up'
     # pending containers are waiting....
     elif container_pending_ratio > cluster_settings.UpContainerPendingRatio:
-        scaling_direction = "up"
+        scaling_direction = 'up'
         containerpendingratio = container_pending_ratio
     # we have too much memory  :)
     elif yarn_memory_available_percentage > \
             cluster_settings.DownYARNMemAvailePct:
-        scaling_direction = "down"
+        scaling_direction = 'down'
     body = {
-        "cluster": cluster_name,
-        "scaling_direction": scaling_direction,
-        "containerpendingratio": containerpendingratio,
-        "scale_to": scale_to
+        'cluster': cluster_name,
+        'scaling_direction': scaling_direction,
+        'containerpendingratio': containerpendingratio,
+        'scale_to': scale_to
     }
     if scaling_direction == 'down' and yarn_containers_pending != 0:
         scaling_direction = None

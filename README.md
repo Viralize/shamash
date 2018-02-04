@@ -16,13 +16,13 @@ Cloud Dataproc is a fast, easy-to-use, fully-managed cloud service for running A
 
 Cloud Dataproc also easily integrates with other Google Cloud Platform (GCP) services, giving you a powerful and complete platform for data processing, analytics, and machine learning.
 
-Due to different usage patterns (e.g., high load during work hours, no usage overnight), the cluster may become either underprovisioned (users experience, lousy performance) or overprovision (cluster is idle, causing a waste of resources and unnecessary costs).
+Due to different usage patterns (e.g. high load during work hours, no usage overnight), the cluster may become either underprovisioned (user experience lousy performance) or overprovision (cluster is idle causing a waste of resources and unnecessary costs).
 
 However, while autoscaling has become state-of-the-art for applications in GCP, currently there exists no out-of-the-box solution for autoscaling of Dataproc clusters.
 
-The "Shamash" autoscaling tool actively monitors the performance of Dataproc clusters and automatically scales the cluster up and down where appropriate. Shamash adds and removes nodes based on the current load of the cluster.
+The Shamash autoscaling tool actively monitors the performance of Dataproc clusters and automatically scales the cluster up and down where appropriate. Shamash adds and removes nodes based on the current load of the cluster.
 
-We built Shamash on top of Google App Engine utilizing a serveries architecture. 
+We built Shamash on top of Google App Engine utilizing a serverless architecture. 
 
 ### Highlights
 * Serverless operation
@@ -54,7 +54,7 @@ Shamash requires both Google Compute Engine, Google Cloud Pub/Sub, Dataproc API 
 * Cluster — Google Dataproc Cluster Name
 * Region — Cluster Region
 * PreemptiblePct — The ratio of preemptible workers in Dataproc cluster
-* ContainerPendingRatio — The ratio of pending containers allocated to trigger scale out event of the cluster. (UpContainerPendingRatio = yarn-containers-pending / yarn-containers-allocated). If yarn-containers-allocated = 0, then ContainerPendingRatio = yarn-containers-pending.
+* ContainerPendingRatio — The ratio of pending containers allocated to trigger scale out event of the cluster (UpContainerPendingRatio = yarn-containers-pending / yarn-containers-allocated). If yarn-containers-allocated = 0, then ContainerPendingRatio = yarn-containers-pending.
 * UpYARNMemAvailPct — The percentage of remaining memory available to YARN to trigger
 * DownYARNMemAvailePct — The percentage of remaining memory available to YARN to trigger scale down
 
@@ -74,12 +74,21 @@ Shamash requires both Google Compute Engine, Google Cloud Pub/Sub, Dataproc API 
 * `/monitor` calls `check_load()`
 * `check_load()` get the data from the cluster and publishes it to pub/sub`pubsub.publish(pubsub_client, msg, MONITORING_TOPIC)`
 * `/get_monitoring_data` is invoked when there is a new message in the monitoring topic and calls /should_scale
-* should_scale decide if the cluster has to be rescaled. If yes, trigger_scaling which put data into pub/sub scaling topic
+* `should_scale` decide if the cluster has to be rescaled. If yes, `trigger_scaling` which put data into pub/sub scaling topic
 * `/scale` invokes, gets the message from pub/sub and  calls `do_scale`
 * Once the calculations are done Shamash will patch the cluster with a new 
 number of nodes.
 
 ## Visualization
+
+We didn’t build any visualization into Shamash, however, since all metrics are reported to Stackdriver, you can build a dashboard that will show you the metrics which Shamash is tracking, as well as the number of nodes, number of workers and preemptible workers.
+
+The metrics names are:
+`ContainerPendingRatio`
+`YARNMemoryAvailablePercentage`
+`YarnNodes`
+`Workers`
+`PreemptibleWorkers`
 
 ![](Shamash_-_Dashboard.png)
 ### Local Development
@@ -87,8 +96,11 @@ For local development run:
 
  `dev_appserver.py --log_level=debug app.yaml`
 
-  You will need a local config.json file in the following structure
+  You will need a local config.json file in the following structure:
 
 `{
 "project": "project-id"
 }`
+
+## Contributing
+We invite everyone to take part in improving it by submitting issues and pull requests.

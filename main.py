@@ -1,4 +1,4 @@
-"""Entry point for Shamash"""
+"""Entry point for Shamash."""
 import logging
 
 import flask_admin
@@ -28,7 +28,7 @@ def create_app():
         app, 'Admin', base_template='layout.html', template_mode='bootstrap3')
 
     admin.add_view(AdminCustomView(settings.Settings))
-    logging.info("Starting {} on {}".format("Shamash", hostname))
+    logging.info("Starting Shamash on %s", hostname)
     clusters = settings.get_all_clusters_settings()
     for cluster in clusters.iter():
         met = metrics.Metrics(cluster.Cluster)
@@ -79,26 +79,23 @@ def scale():
     return scaler.do_scale()
 
 
-@app.route('/tasks/check_load')
+@app.route('/tasks/check-load')
 def check_load():
     """Entry point for cron task that launches a task for each cluster
     check cluster stats"""
     clusters = settings.get_all_clusters_settings()
     for cluster in clusters.iter():
-        task = taskqueue.add(
-            queue_name='shamash',
-            url="/do_monitor",
-            method='GET',
-            params={
-                'cluster_name': cluster.Cluster
-            })
-        logging.debug('Task {} enqueued, ETA {}.'.format(task.name, task.eta))
+        task = taskqueue.add(queue_name='shamash',
+                             url="/monitors",
+                             method='GET',
+                             params={'cluster_name': cluster.Cluster})
+        logging.debug('Task %s enqueued, ETA %s.', task.name, task.eta)
 
     return 'ok', 200
 
 
-@app.route('/do_monitor', methods=['GET'])
-def do_monitor():
+@app.route('/monitors', methods=['GET'])
+def monitors():
     """
     called by task to do the actual check
     :return:
@@ -107,8 +104,8 @@ def do_monitor():
     return dp.check_load()
 
 
-@app.route('/do_patch', methods=['GET'])
-def do_patch():
+@app.route('/patch', methods=['GET'])
+def patch():
     """
     called by task to do the actual cluster update
     :return:
@@ -116,14 +113,14 @@ def do_patch():
     new_workers = int(request.args.get('new_workers'))
     new_preemptible = int(request.args.get('new_preemptible'))
     cluster_name = request.args.get('cluster_name')
-    logging.debug('Task Starting for  {}'.format(cluster_name))
+    logging.debug('Task Starting for  %s', cluster_name)
     dp = dataproc_monitoring.DataProc(cluster_name)
-    logging.debug('Patching new_workers {} new_preemptible {}'.format(
-        new_workers, new_preemptible))
+    logging.debug('Patching new_workers %s new_preemptible %s', new_workers,
+                  new_preemptible)
     try:
-        logging.debug('Start Patching  {}'.format(cluster_name))
+        logging.debug('Start Patching %s', cluster_name)
         dp.patch_cluster(new_workers, new_preemptible)
-        logging.debug('Done Patching  {}'.format(cluster_name))
+        logging.debug('Done Patching %s', cluster_name)
     except dataproc_monitoring.DataProcException as e:
         logging.error(e)
         return 'error', 500
@@ -142,9 +139,9 @@ def favicon():
 @app.errorhandler(500)
 def server_error(e):
     """Log the error and stacktrace."""
-    logging.exception('An error occurred during a request. {}'.format(e))
+    logging.exception('An error occurred during a request. %s', e)
     return 'An internal error occurred.', 500
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

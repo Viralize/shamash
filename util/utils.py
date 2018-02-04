@@ -1,4 +1,4 @@
-"""Misc utils"""
+"""Misc utils."""
 import json
 import logging
 import os
@@ -16,19 +16,20 @@ def detect_gae():
       True iff we're running on GAE.
     """
     server_software = os.environ.get('SERVER_SOFTWARE', '')
-    return not (server_software.startswith('Development/'))
+    return not server_software.startswith('Development/')
 
 
 def _get_project_id():
     logging.info("-------------------Running Localy--------------------")
-    with open('config.json', 'r') as f:
-        config = json.load(f)
+    with open('config.json', 'r') as config_file:
+        config = json.load(config_file)
     return config['project']
 
 
 def get_project_id():
     """
-    returns the real or local project id
+    Return the real or local project id.
+
     :return: project_id
     """
     if detect_gae():
@@ -40,7 +41,8 @@ def get_project_id():
 
 def get_host_name():
     """
-    returns the real or local hostname
+    Return the real or local hostname.
+
     :return: hostname
     """
     if detect_gae():
@@ -52,7 +54,8 @@ def get_host_name():
 
 def fatal_code(e):
     """
-    in case of a 500+ errcode do backoff
+    In case of a 500+ errcode do backoff.
+
     :param e: execption
     :return:
     """

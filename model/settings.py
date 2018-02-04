@@ -6,12 +6,13 @@ from google.auth import app_engine
 from util import utils
 from monitoring import metrics
 SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
-credentials = app_engine.Credentials(scopes=SCOPES)
+CREDENTIALS = app_engine.Credentials(scopes=SCOPES)
 
 
 def get_regions():
     """
-    get all available regions
+    Get all available regions.
+
     :return: all regions
     """
     compute = googleapiclient.discovery.build('compute', 'v1')
@@ -28,9 +29,7 @@ def get_regions():
 
 
 class Settings(ndb.Model):
-    """
-    Setting management for Shamash
-    """
+    """Setting management for Shamash."""
     Cluster = ndb.StringProperty(indexed=True, required=True)
     Region = ndb.StringProperty(
         choices=get_regions(), default='us-east1', required=True)
@@ -57,7 +56,8 @@ def get_cluster_settings(cluster_name):
 
 def get_all_clusters_settings():
     """
-    get all entities of setting kind
+    Get all entities of setting kind.
+
     :return:
     """
     return Settings.query()

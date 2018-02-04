@@ -1,4 +1,4 @@
-"""Helper functions for scaling """
+"""Helper functions for scaling."""
 import base64
 import json
 import logging
@@ -12,10 +12,11 @@ SCALING_TOPIC = 'shamash-scaling'
 
 def trigger_scaling(direction):
     """
-    Start scaling operation
+    Start scaling operation.
+
     :param direction:
     """
-    logging.info('Trigger Scaling {}'.format(direction))
+    logging.info('Trigger Scaling %s', direction)
     msg = {'messages': [{'data': base64.b64encode(json.dumps(direction))}]}
     pubsub_client = pubsub.get_pubsub_client()
     try:
@@ -26,7 +27,8 @@ def trigger_scaling(direction):
 
 def should_scale(payload):
     """
-    Make a decision to scale or not
+    Make a decision to scale or not.
+
     :param payload:
     :return:
     """
@@ -43,14 +45,14 @@ def should_scale(payload):
     for st in s:
         cluster_settings = st
     logging.info(
-        'Cluster {} YARNMemAvailPct {} ContainerPendingRatio {}'.format(
-            cluster_name, yarn_memory_available_percentage,
-            container_pending_ratio, number_of_nodes))
+        'Cluster %s YARNMemAvailPct %s ContainerPendingRatio %s number of '
+        'nodes %s',
+        cluster_name, yarn_memory_available_percentage, container_pending_ratio,
+        number_of_nodes)
     met = metrics.Metrics(cluster_name)
     met.write_timeseries_value('YARNMemoryAvailablePercentage',
                                100 * yarn_memory_available_percentage)
-    met.write_timeseries_value('ContainerPendingRatio',
-                               container_pending_ratio)
+    met.write_timeseries_value('ContainerPendingRatio', container_pending_ratio)
     met.write_timeseries_value('YarnNodes',
                                str(int(workers) + int(preemptible_workers)))
     met.write_timeseries_value('Workers', workers)
@@ -59,8 +61,8 @@ def should_scale(payload):
     scaling_direction = None
     containerpendingratio = -1
     scale_to = -1
-    """No memory is allocated so no needs for more nodes just scale down to the
-     minimum"""
+    # No memory is allocated so no needs for more nodes just scale down to the
+    # minimum
     if yarn_memory_available_percentage == 1:
         if number_of_nodes > cluster_settings.MinInstances:
             scaling_direction = 'down'

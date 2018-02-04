@@ -1,4 +1,4 @@
-"""Interact with pub/sub"""
+"""Interact with pub/sub."""
 import logging
 
 import backoff
@@ -12,13 +12,11 @@ PUBSUB_SCOPES = [
     'https://www.googleapis.com/auth/pubsub',
     'https://www.googleapis.com/auth/cloud-platform'
 ]
-credentials = app_engine.Credentials(scopes=PUBSUB_SCOPES)
+CREDENTIALS = app_engine.Credentials(scopes=PUBSUB_SCOPES)
 
 
 class PubSubException(Exception):
-    """
-    Exception class for Pub/Sub functions
-    """
+    """Exception class for Pub/Sub functions."""
 
     def __init__(self, value):
         self.parameter = value
@@ -28,12 +26,12 @@ class PubSubException(Exception):
 
 
 def get_pubsub_client():
-    """Get a pubsub client from the API"""
-    return discovery.build('pubsub', 'v1', credentials=credentials)
+    """Get a pubsub client from the API."""
+    return discovery.build('pubsub', 'v1', credentials=CREDENTIALS)
 
 
 def publish(client, body, topic):
-    """Publish a message to a Pub/Sub topic"""
+    """Publish a message to a Pub/Sub topic."""
     project = 'projects/{}'.format(utils.get_project_id())
     dest_topic = project + '/topics/' + topic
 
@@ -52,7 +50,8 @@ def publish(client, body, topic):
 
 def create_subscriptions(client, sub, topic):
     """
-    Create a subscription in pub/sub
+    Create a subscription in pub/sub.
+
     :param client:
     :param sub:
     :param topic:
@@ -87,7 +86,8 @@ def create_subscriptions(client, sub, topic):
 
 def create_topic(client, topic):
     """
-    Check if topix exists if not create it
+    Check if topix exists if not create it.
+
     :param client:
     :param topic:
     :return:
@@ -122,13 +122,11 @@ def fqrn(resource_type, project, resource):
 
 def get_full_subscription_name(project, subscription):
     """Return a fully qualified subscription name."""
-    print fqrn('subscriptions', project, subscription)
     return fqrn('subscriptions', project, subscription)
 
 
 def pull(client, sub, endpoint):
-    """Register a listener endpoint """
-
+    """Register a listener endpoint."""
     subscription = get_full_subscription_name(utils.get_project_id(), sub)
     body = {'pushConfig': {'pushEndpoint': endpoint}}
 

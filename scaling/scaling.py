@@ -54,7 +54,8 @@ class Scale(object):
 
         try:
             self.cluster_status = self.dataproc.get_cluster_status()
-            self.current_nodes = int(self.dataproc.get_number_of_nodes())
+            self.current_nodes = \
+                int(self.dataproc.get_yarn_metric('yarn-nodes-active'))
         except dataproc_monitoring.DataProcException as e:
             logging.error(e)
             raise e
@@ -72,7 +73,7 @@ class Scale(object):
             logging.debug('No allocated memory lets go down! New workers %s'
                           ' New preemptibel', self.total)
             return
-        # no more memory lets get some  nodes. claculate how many memory each
+        # no more memory lets get some  nodes. calculate how many memory each
         # node uses. Then calculate how many nodes we need by memory
         # consumption
         if self.dataproc.get_yarn_memory_available_percentage() == 0:

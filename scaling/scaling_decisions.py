@@ -34,25 +34,26 @@ def should_scale(payload):
     """
     cluster_settings = None
     data = json.loads(base64.b64decode(payload))
-    yarn_memory_available_percentage = data['yarn_memory_available_percentage']
+    yarn_memory_available_percentage = data[
+        'yarn_memory_available_percentage']
     container_pending_ratio = data['container_pending_ratio']
     number_of_nodes = data['number_of_nodes']
     cluster_name = data['cluster']
     yarn_containers_pending = data['yarn_containers_pending']
-    workers = data['workers']
+    workers = data['worker_nodes']
     preemptible_workers = data['preemptible_workers']
     s = settings.get_cluster_settings(cluster_name)
     for st in s:
         cluster_settings = st
     logging.info(
         'Cluster %s YARNMemAvailPct %s ContainerPendingRatio %s number of '
-        'nodes %s',
-        cluster_name, yarn_memory_available_percentage, container_pending_ratio,
-        number_of_nodes)
+        'nodes %s', cluster_name, yarn_memory_available_percentage,
+        container_pending_ratio, number_of_nodes)
     met = metrics.Metrics(cluster_name)
     met.write_timeseries_value('YARNMemoryAvailablePercentage',
                                100 * yarn_memory_available_percentage)
-    met.write_timeseries_value('ContainerPendingRatio', container_pending_ratio)
+    met.write_timeseries_value('ContainerPendingRatio',
+                               container_pending_ratio)
     met.write_timeseries_value('YarnNodes',
                                str(int(workers) + int(preemptible_workers)))
     met.write_timeseries_value('Workers', workers)

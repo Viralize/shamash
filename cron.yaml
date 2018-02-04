@@ -1,4 +1,4 @@
 cron:
 - description: "check cluster load"
-  url: /tasks/check_load
+  url: /tasks/check-load
   schedule: every 2 minutes

@@ -4,6 +4,7 @@
 
 Shamash is a service for autoscaling Cloud DataProc on Google Cloud Platform(GCP).
 
+[Blog Post](http://bit.ly/shamash_blog)
 
 [Shamash](https://www.wikiwand.com/en/Shamash) was the god of justice in Babylonia and Assyria, just like
 the Shamash auto-scaler whose job is to maintain a tradeoff between costs and

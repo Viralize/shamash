@@ -1,6 +1,7 @@
 runtime: python27
 api_version: 1
 threadsafe: true
+service: shamash
 
 handlers:
 - url: /static

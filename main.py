@@ -40,8 +40,8 @@ def create_app():
     pubsub.create_subscriptions(client, 'monitoring', 'shamash-monitoring')
     pubsub.create_subscriptions(client, 'scaling', 'shamash-scaling')
     pubsub.pull(client, 'monitoring',
-                'https://{}/get_monitoring_data'.format(hostname))
-    pubsub.pull(client, 'scaling', "https://{}/scale".format(hostname))
+                'https://shamash-dot-{}/get_monitoring_data'.format(hostname))
+    pubsub.pull(client, 'scaling', "https://shamash-dot-{}/scale".format(hostname))
 
 
 create_app()

@@ -96,7 +96,8 @@ class DataProc(object):
             yarn_memory_mb_available = int(
                 self.get_yarn_metric('yarn-memory-mb-available'))
             total_memory = yarn_memory_mb_allocated + yarn_memory_mb_available
-
+            if total_memory == 0:
+                return 0
             return int(yarn_memory_mb_available) / int(total_memory)
         except DataProcException as e:
             logging.error(e)

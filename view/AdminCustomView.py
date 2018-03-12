@@ -23,6 +23,10 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
     column_dic = LastUpdatedOrderedDict()
 
     column_dic.update({
+        'Enabled': {
+            'label': 'Enable auto scaling',
+            'description': 'Is auto scaling enabled'
+        },
         'Cluster': {
             'label': 'Cluster Name',
             'description': 'Google Dataproc Cluster Name'

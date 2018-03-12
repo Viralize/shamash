@@ -30,6 +30,7 @@ def get_regions():
 
 class Settings(ndb.Model):
     """Setting management for Shamash."""
+    Enabled = ndb.BooleanProperty(required=True, default=True)
     Cluster = ndb.StringProperty(indexed=True, required=True)
     Region = ndb.StringProperty(
         choices=get_regions(), default='us-east1', required=True)

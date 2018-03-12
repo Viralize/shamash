@@ -48,7 +48,7 @@ class Scale(object):
             self.cluster_settings.UpContainerPendingRatio
         if self.preemptible_pct != 100:
             self.preemptibles_to_workers_ratio = self.preemptible_pct / (
-                100 - self.preemptible_pct)
+                    100 - self.preemptible_pct)
         else:
             self.preemptibles_to_workers_ratio = -1
 
@@ -81,6 +81,8 @@ class Scale(object):
                 self.dataproc.get_memory_data()
             ratio = float(
                 int(yarn_memory_mb_allocated) / int(self.current_nodes))
+            if ratio == 0:
+                ratio = 1
             factor = float(int(yarn_memory_mb_pending) / ratio)
             self.total = int(self.current_nodes * factor)
             logging.debug(

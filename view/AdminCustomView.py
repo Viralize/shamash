@@ -35,6 +35,15 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
             'label': 'Cluster Region',
             'description': 'Cluster Region'
         },
+        'AddRemoveDelta': {
+            'label': 'Add/Remove delta',
+            'description':
+            'The number of nodes to add/remove. If 0 Shamash will calulate this automatically',
+            'validators': [
+                GreaterEqualThan(0),
+                SmallerEqualThan(fieldname='MaxInstances')
+            ]
+        },
         'PreemptiblePct': {
             'label': '% Preemptible',
             'description':

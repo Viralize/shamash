@@ -40,7 +40,7 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
             'description':
             'The number of nodes to add/remove. If 0 Shamash will calulate this automatically',
             'validators': [
-                GreaterEqualThan(0),
+                validators.NumberRange(min=0),
                 SmallerEqualThan(fieldname='MaxInstances')
             ]
         },

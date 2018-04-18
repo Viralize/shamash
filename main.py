@@ -138,6 +138,13 @@ def favicon():
     """
     return redirect('/static/favicon.ico', 302)
 
+@app.route('/version')
+def version():
+    """
+    Get the amazing favicon
+    :return:
+    """
+    return redirect('/static/version.html', 302)
 
 @app.errorhandler(500)
 def server_error(e):

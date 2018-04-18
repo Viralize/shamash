@@ -235,3 +235,5 @@ typings/
 /debug/
 .idea/
 /config.json
+/static/version.html
+static/version.html

@@ -9,5 +9,5 @@ echo Project ID $PROJECTID
 gcloud config set project $PROJECTID
 
 
-
+git rev-parse HEAD >static/version.html
 gcloud app deploy -q app.yaml cron.yaml queue.yaml

@@ -41,6 +41,8 @@ class Settings(ndb.Model):
     PreemptiblePct = ndb.IntegerProperty(default=80, required=True)
     MaxInstances = ndb.IntegerProperty(default=10, required=True)
     MinInstances = ndb.IntegerProperty(default=2, required=True)
+    GracefulDecommissionTimeout = ndb.IntegerProperty(
+        default=0, required=False)
 
     def _post_put_hook(self, future):
         met = metrics.Metrics(self.Cluster)

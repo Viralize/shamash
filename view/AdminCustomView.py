@@ -93,7 +93,17 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
                 validators.NumberRange(2),
                 GreaterEqualThan(fieldname='MinInstances')
             ]
-        }
+        },
+        'GracefulDecommissionTimeout': {
+            'label': 'Graceful Decommission Timeout',
+            'description':
+                'Graceful Decommission Timeout in minutes',
+            'validators': [
+                validators.NumberRange(min=0),
+                SmallerEqualThan(1440)
+            ]
+        },
+
     })
 
     column_list = ([key for key in column_dic])

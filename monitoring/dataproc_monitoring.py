@@ -185,10 +185,14 @@ class DataProc(object):
 
         # Wait for cluster
         _is_cluster_running()
+        if self.cluster_settings.GracefulDecommissionTimeout != 0:
+            gracefuldecommissiontimeout = self.cluster_settings.GracefulDecommissionTimeout * 60 + 's'
+        else:
+            gracefuldecommissiontimeout = '0s'
         if self.get_number_of_workers() != worker_nodes:
             body = json.loads(
-                '{"config":{"workerConfig":{"numInstances":%d}}}' %
-                worker_nodes)
+                '{"gracefulDecommissionTimeout": "%s", "config":{"secondaryWorkerConfig":{"numInstances":%d}}}'
+                % (gracefuldecommissiontimeout, worker_nodes))
             update_mask = 'config.worker_config.num_instances'
             try:
                 _do_request(update_mask)
@@ -198,8 +202,8 @@ class DataProc(object):
         if self.get_number_of_preemptible_workers() == preemptible_nodes:
             return 'ok', 204
         body = json.loads(
-            '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' %
-            preemptible_nodes)
+            '{"gracefulDecommissionTimeout": "%s", "config":{"secondaryWorkerConfig":{"numInstances":%d}}}'
+            % (gracefuldecommissiontimeout, preemptible_nodes))
         update_mask = 'config.secondary_worker_config.num_instances'
         _is_cluster_running()
         try:

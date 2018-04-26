@@ -171,12 +171,13 @@ class DataProc(object):
 
         @backoff.on_exception(
             backoff.expo, HttpError, max_tries=8, giveup=utils.fatal_code)
-        def _do_request(mask):
+        def _do_request(mask, gracefuldecommissiontimeout):
             self.dataproc.projects().regions().clusters().patch(
                 projectId=self.project_id,
                 region=self.cluster_settings.Region,
                 clusterName=self.cluster_name,
                 updateMask=mask,
+                gracefulDecommissionTimeout=gracefuldecommissiontimeout,
                 body=body).execute()
 
         @backoff.on_predicate(backoff.expo)
@@ -186,28 +187,28 @@ class DataProc(object):
         # Wait for cluster
         _is_cluster_running()
         if self.cluster_settings.GracefulDecommissionTimeout != 0:
-            gracefuldecommissiontimeout = self.cluster_settings.GracefulDecommissionTimeout * 60 + 's'
+            gracefuldecommissiontimeout = str(self.cluster_settings.GracefulDecommissionTimeout * 60) + 's'
         else:
             gracefuldecommissiontimeout = '0s'
         if self.get_number_of_workers() != worker_nodes:
             body = json.loads(
-                '{"gracefulDecommissionTimeout": "%s", "config":{"secondaryWorkerConfig":{"numInstances":%d}}}'
-                % (gracefuldecommissiontimeout, worker_nodes))
+                '{"config":{"workerConfig":{"numInstances":%d}}}' %
+                worker_nodes)
             update_mask = 'config.worker_config.num_instances'
             try:
-                _do_request(update_mask)
+                _do_request(update_mask, gracefuldecommissiontimeout)
             except HttpError as e:
                 raise DataProcException(e)
 
         if self.get_number_of_preemptible_workers() == preemptible_nodes:
             return 'ok', 204
         body = json.loads(
-            '{"gracefulDecommissionTimeout": "%s", "config":{"secondaryWorkerConfig":{"numInstances":%d}}}'
-            % (gracefuldecommissiontimeout, preemptible_nodes))
+            '{"config":{"secondaryWorkerConfig":{"numInstances":%d}}}' %
+            preemptible_nodes)
         update_mask = 'config.secondary_worker_config.num_instances'
         _is_cluster_running()
         try:
-            _do_request(update_mask)
+            _do_request(update_mask, gracefuldecommissiontimeout)
         except HttpError as e:
             raise DataProcException(e)
         return 'ok', 200

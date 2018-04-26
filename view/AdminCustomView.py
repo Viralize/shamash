@@ -99,8 +99,7 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
             'description':
                 'Graceful Decommission Timeout in minutes',
             'validators': [
-                validators.NumberRange(min=0),
-                SmallerEqualThan(1440)
+                validators.NumberRange(0,1440),
             ]
         },
 

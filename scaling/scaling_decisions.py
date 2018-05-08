@@ -64,17 +64,17 @@ def should_scale(payload):
     scale_to = -1
     # No memory is allocated so no needs for more nodes just scale down to the
     # minimum
-    if yarn_memory_available_percentage == 1:
+    # pending containers are waiting....
+    if container_pending_ratio > cluster_settings.UpContainerPendingRatio:
+        scaling_direction = 'up'
+        containerpendingratio = container_pending_ratio
+    elif yarn_memory_available_percentage == 1:
         if number_of_nodes > cluster_settings.MinInstances:
             scaling_direction = 'down'
             scale_to = cluster_settings.MinInstances
     # We don't have enough memory lets go up
     elif yarn_memory_available_percentage < cluster_settings.UpYARNMemAvailPct:
         scaling_direction = 'up'
-    # pending containers are waiting....
-    elif container_pending_ratio > cluster_settings.UpContainerPendingRatio:
-        scaling_direction = 'up'
-        containerpendingratio = container_pending_ratio
     # we have too much memory  :)
     elif yarn_memory_available_percentage > \
             cluster_settings.DownYARNMemAvailePct:

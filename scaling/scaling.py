@@ -87,7 +87,7 @@ class Scale(object):
             ratio = float(
                 int(yarn_containers_allocated) / int(self.current_nodes))
             factor = float(int(yarn_containers_pending) / ratio)
-            if self.cluster_settings.AddUpRemoveDelta != 0:
+            if self.cluster_settings.AddRemoveUpDelta != 0:
                 self.total = self.current_nodes + self.cluster_settings.AddRemoveUpDelta
             else:
                 self.total = int(self.current_nodes * factor)

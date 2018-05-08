@@ -43,12 +43,13 @@ class Scale(object):
         self.preemptible_pct = self.cluster_settings.PreemptiblePct
         self.min_instances = self.cluster_settings.MinInstances
         self.max_instances = self.cluster_settings.MaxInstances
+        self.use_memory = self.cluster_settings.UseMemoryForScaling
 
         self.up_container_pending_ratio = \
             self.cluster_settings.UpContainerPendingRatio
         if self.preemptible_pct != 100:
             self.preemptibles_to_workers_ratio = self.preemptible_pct / (
-                    100 - self.preemptible_pct)
+                100 - self.preemptible_pct)
         else:
             self.preemptibles_to_workers_ratio = -1
 
@@ -66,42 +67,17 @@ class Scale(object):
 
         :return:
         """
-
         # No allocated memory so we don't need any workers above the
         # bare minimum
         if self.scale_to != -1:
-            if self.cluster_settings.AddRemoveDelta != 0:
+            if self.cluster_settings.AddRemoveDownDelta != 0:
                 self.total = max(
-                    self.current_nodes - self.cluster_settings.AddRemoveDelta,
+                    self.current_nodes - self.cluster_settings.AddRemoveDownDelta,
                     self.cluster_settings.MinInstances)
             else:
                 self.total = self.min_instances
-            logging.debug(
-                'No allocated memory lets go down! New workers %s'
-                ' New preemptibel', self.total)
-            return
-        # no more memory lets get some  nodes. calculate how many memory each
-        # node uses. Then calculate how many nodes we need by memory
-        # consumption
-        if self.dataproc.get_yarn_memory_available_percentage() == 0:
-            yarn_memory_mb_allocated, yarn_memory_mb_pending = \
-                self.dataproc.get_memory_data()
-            ratio = float(
-                int(yarn_memory_mb_allocated) / int(self.current_nodes))
-            if ratio == 0:
-                ratio = 1
-            factor = float(int(yarn_memory_mb_pending) / ratio)
-            if self.cluster_settings.AddRemoveDelta != 0:
-                self.total = self.current_nodes + self.cluster_settings.AddRemoveDelta
-            else:
-                self.total = int(self.current_nodes * factor)
-            logging.debug(
-                'yarn_memory_mb_allocated %s pending %s ratio %s factor %s'
-                ' current %s total %s', yarn_memory_mb_allocated,
-                yarn_memory_mb_pending, ratio, factor, self.current_nodes,
-                self.total)
-            logging.debug('No More Mem! New workers %s  prev %s',
-                          self.total, self.current_nodes)
+            logging.debug('No allocated memory lets go down! New workers %s'
+                          ' New preemptibel', self.total)
             return
 
         # pending containers are waiting....
@@ -111,20 +87,44 @@ class Scale(object):
             ratio = float(
                 int(yarn_containers_allocated) / int(self.current_nodes))
             factor = float(int(yarn_containers_pending) / ratio)
-            if self.cluster_settings.AddRemoveDelta != 0:
-                self.total = self.current_nodes + self.cluster_settings.AddRemoveDelta
+            if self.cluster_settings.AddUpRemoveDelta != 0:
+                self.total = self.current_nodes + self.cluster_settings.AddRemoveUpDelta
             else:
                 self.total = int(self.current_nodes * factor)
             logging.debug(
                 'yarn_containers_allocated %s pending %s ratio %s factor %s'
                 ' current %s total %s', yarn_containers_allocated,
-                yarn_containers_pending, ratio, factor,
-                self.current_nodes, self.total)
+                yarn_containers_pending, ratio, factor, self.current_nodes,
+                self.total)
             logging.debug('Need more containers! New workers %s  prev %s',
                           self.total, self.current_nodes)
             return
 
-        self.calc_scale()
+        # no more memory lets get some  nodes. calculate how many memory each
+        # node uses. Then calculate how many nodes we need by memory
+        # consumption
+        if self.use_memory:
+            if self.dataproc.get_yarn_memory_available_percentage() == 0:
+                yarn_memory_mb_allocated, yarn_memory_mb_pending = \
+                    self.dataproc.get_memory_data()
+                ratio = float(
+                    int(yarn_memory_mb_allocated) / int(self.current_nodes))
+                if ratio == 0:
+                    ratio = 1
+                factor = float(int(yarn_memory_mb_pending) / ratio)
+                if self.cluster_settings.AddRemoveUpDelta != 0:
+                    self.total = self.current_nodes + self.cluster_settings.AddRemoveUpDelta
+                else:
+                    self.total = int(self.current_nodes * factor)
+                logging.debug(
+                    'yarn_memory_mb_allocated %s pending %s ratio %s factor %s'
+                    ' current %s total %s', yarn_memory_mb_allocated,
+                    yarn_memory_mb_pending, ratio, factor, self.current_nodes,
+                    self.total)
+                logging.debug('No More Mem! New workers %s  prev %s', self.total,
+                              self.current_nodes)
+                return
+            self.calc_scale()
 
     def do_scale(self):
         """
@@ -201,13 +201,16 @@ class Scale(object):
         if sl != 0:
             slope = (1 / sl)
             logging.debug('Slope is %s', slope)
-            if self.cluster_settings.AddRemoveDelta != 0:
-                if slope > 0:
-                    self.total = self.total + self.cluster_settings.AddRemoveDelta
+            if slope > 0:
+                if self.cluster_settings.AddRemoveUpDelta != 0:
+                    self.total = self.total + self.cluster_settings.AddRemoveUpDelta
                 else:
-                    self.total = self.total - self.cluster_settings.AddRemoveDelta
-            else:
-                self.total = self.total + slope
+                    self.total = self.total + slope
+            if slope < 0:
+                if self.cluster_settings.AddRemoveDownDelta != 0:
+                    self.total = self.total - self.cluster_settings.AddRemoveDownDelta
+                else:
+                    self.total = self.total + slope
             logging.debug('New workers %s  prev %s', self.total,
                           self.current_nodes)
 

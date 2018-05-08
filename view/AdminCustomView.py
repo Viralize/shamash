@@ -35,14 +35,28 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
             'label': 'Cluster Region',
             'description': 'Cluster Region'
         },
-        'AddRemoveDelta': {
+        'AddRemoveUpDelta': {
             'label': 'Add/Remove delta',
             'description':
-            'The number of nodes to add/remove. If 0 Shamash will calulate this automatically',
+            'The number of nodes to add. If 0 Shamash will calulate this automatically',
             'validators': [
                 validators.NumberRange(min=0),
                 SmallerEqualThan(fieldname='MaxInstances')
             ]
+        },
+        'AddRemoveDownDelta': {
+            'label': 'Remove delta',
+            'description':
+            'The number of nodes to remove. If 0 Shamash will calulate this automatically',
+            'validators': [
+                validators.NumberRange(min=0),
+                SmallerEqualThan(fieldname='MaxInstances')
+            ]
+        },
+        'UseMemoryForScaling': {
+            'label': 'Use Memory metrics for scaling',
+            'description':
+            'Should Shamsh use memory metrics for scaling decision'
         },
         'PreemptiblePct': {
             'label': '% Preemptible',
@@ -96,13 +110,9 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
         },
         'GracefulDecommissionTimeout': {
             'label': 'Graceful Decommission Timeout',
-            'description':
-                'Graceful Decommission Timeout in minutes',
-            'validators': [
-                validators.NumberRange(0,1440),
-            ]
+            'description': 'Graceful Decommission Timeout in minutes',
+            'validators': [validators.NumberRange(0, 1440),]
         },
-
     })
 
     column_list = ([key for key in column_dic])

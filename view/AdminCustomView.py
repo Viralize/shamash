@@ -71,9 +71,18 @@ class AdminCustomView(flask_admin.contrib.appengine.view.NdbModelView):
             'out event of the cluster',
             'validators': [
                 validators.NumberRange(0),
-                SmallerEqualThan(fieldname='DownYARNMemAvailePct')
             ]
         },
+        'DownContainerPendingRatio': {
+            'label': 'Container Pending Ratio',
+            'description':
+                'The ratio of pending containers allocated to trigger scale '
+                'in event of the cluster',
+            'validators': [
+                validators.NumberRange(0),
+            ]
+        },
+
         'DownYARNMemAvailePct': {
             'label': 'Scale In % YARNMemoryAvailable',
             'description':

@@ -68,6 +68,9 @@ def should_scale(payload):
     if container_pending_ratio > cluster_settings.UpContainerPendingRatio:
         scaling_direction = 'up'
         containerpendingratio = container_pending_ratio
+    elif container_pending_ratio < cluster_settings.DownContainerPendingRatio:
+        scaling_direction = 'down'
+        containerpendingratio = container_pending_ratio
     elif yarn_memory_available_percentage == 1:
         if number_of_nodes > cluster_settings.MinInstances:
             scaling_direction = 'down'
@@ -85,8 +88,6 @@ def should_scale(payload):
         'containerpendingratio': containerpendingratio,
         'scale_to': scale_to
     }
-    if scaling_direction == 'down' and yarn_containers_pending != 0:
-        scaling_direction = None
 
     if scaling_direction is not None:
         trigger_scaling(body)

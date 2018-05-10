@@ -40,6 +40,7 @@ class Settings(ndb.Model):
     UpYARNMemAvailPct = ndb.IntegerProperty(default=15, required=True)
     DownYARNMemAvailePct = ndb.IntegerProperty(default=75, required=True)
     UpContainerPendingRatio = ndb.FloatProperty(default=1, required=True)
+    DownContainerPendingRatio = ndb.FloatProperty(default=1, required=True)
     PreemptiblePct = ndb.IntegerProperty(default=80, required=True)
     MaxInstances = ndb.IntegerProperty(default=10, required=True)
     MinInstances = ndb.IntegerProperty(default=2, required=True)

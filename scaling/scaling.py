@@ -95,8 +95,11 @@ class Scale(object):
                 yarn_vcores_pending, \
                 yarn_nodes_active = self.dataproc.get_container_data()
             ratio = int(yarn_vcores_total) / int(yarn_nodes_active)
-            self.total = (int(yarn_vcores_allocated) +
-                          int(yarn_vcores_pending)) / ratio
+            if self.cluster_settings.AddRemoveUpDelta != 0:
+                self.total = self.current_nodes + direction * self.cluster_settings.AddRemoveUpDelta
+            else
+                self.total = (int(yarn_vcores_allocated) +
+                             int(yarn_vcores_pending)) / ratio
             delta_nodes = abs(self.total - yarn_nodes_active)
             logging.debug(
                 'yarn_vcores_total %s yarn_vcores_allocated %s pending %s '

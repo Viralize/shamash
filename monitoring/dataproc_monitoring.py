@@ -187,7 +187,8 @@ class DataProc(object):
         # Wait for cluster
         _is_cluster_running()
         if self.cluster_settings.GracefulDecommissionTimeout != 0:
-            gracefuldecommissiontimeout = str(self.cluster_settings.GracefulDecommissionTimeout * 60) + 's'
+            gracefuldecommissiontimeout = str(
+                self.cluster_settings.GracefulDecommissionTimeout * 60) + 's'
         else:
             gracefuldecommissiontimeout = '0s'
         if self.get_number_of_workers() != worker_nodes:
@@ -289,13 +290,20 @@ class DataProc(object):
         :return: yarn_containers_allocated, yarn_containers_pending
         """
         try:
-            yarn_containers_allocated = int(
-                self.get_yarn_metric('yarn-containers-allocated'))
+            yarn_vcores_total = int(
+                self.get_yarn_metric('yarn-vcores-total'))
 
-            yarn_containers_pending = int(
-                self.get_yarn_metric('yarn-containers-pending'))
+            yarn_vcores_allocated = int(
+                self.get_yarn_metric('yarn-vcores-allocated'))
 
-            return yarn_containers_allocated, yarn_containers_pending
+            yarn_vcores_pending = int(
+                self.get_yarn_metric('yarn-vcores-pending'))
+
+            yarn_nodes_active = int(
+                self.get_yarn_metric('yarn-nodes-active'))
+
+            return yarn_vcores_total, yarn_vcores_allocated, \
+                yarn_vcores_pending, yarn_nodes_active
 
         except DataProcException as e:
             logging.error(e)

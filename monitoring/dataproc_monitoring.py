@@ -126,6 +126,29 @@ class DataProc(object):
             logging.error(e)
             raise
 
+    def get_vcores_pending_ratio(self):
+        """The ratio of pending vcores to vcores allocated
+        (ContaineVcoresRatio = VcoresPending / VcoresAllocated).
+        If VcoresAllocated = 0, then VcoresPendingRatio =
+        VcoresPending. The value of VcoresPendingRatio represents
+        a number, not a percentage.
+        """
+        try:
+
+            yarn_vcores_pending = int(
+                self.get_yarn_metric('yarn-vcores-pending'))
+
+            yarn_vcores_allocated = int(
+                self.get_yarn_metric('yarn-vcores-allocated'))
+
+            if yarn_vcores_allocated == 0:
+                return yarn_vcores_pending
+
+            return yarn_vcores_pending / yarn_vcores_allocated
+        except DataProcException as e:
+            logging.error(e)
+            raise
+
     def get_yarn_metric(self, metric_name):
         """
         Return a yarn metric by name.
@@ -234,6 +257,8 @@ class DataProc(object):
                 float(self.get_yarn_memory_available_percentage()),
                 'container_pending_ratio':
                 float(self.get_container_pending_ratio()),
+                'vcores_pending_ratio':
+                float(self.get_vcores_pending_ratio()),
                 'number_of_nodes':
                 int(self.get_yarn_metric('yarn-nodes-active')),
                 'worker_nodes': int(self.get_number_of_workers()),

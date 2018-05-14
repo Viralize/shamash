@@ -86,7 +86,7 @@ def check_load():
     clusters = settings.get_all_clusters_settings()
     for cluster in clusters.iter():
         if cluster.Enabled :
-            task = taskqueue.add(queue_name='shamash',
+            task = taskqueue.add(queue_name='vr-shamash',
                              url="/monitors",
                              method='GET',
                              params={'cluster_name': cluster.Cluster})

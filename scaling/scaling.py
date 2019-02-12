@@ -69,6 +69,10 @@ class Scale(object):
 
         :return:
         """
+        # Backport fix from https://github.com/doitintl/shamash/commit/e265a2ff4de2597455a6ae2590ec4389aeac7eed#diff-716bf9d077901cb0da96275d9b2b2577
+        # If none of the following condition is matched no scale should be happen
+        # so set by default total to current nodes
+        self.total = self.current_nodes
         # No allocated memory so we don't need any workers above the
         # bare minimum
         if self.scale_to != -1:
